@@ -1,5 +1,3 @@
-import JSZip from 'jszip'
-
 /** An error whose message is safe to show to the user as-is. */
 export class UserError extends Error {}
 
@@ -7,6 +5,32 @@ let counter = 0
 export const uid = () => `${Date.now().toString(36)}${(counter++).toString(36)}`
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * How many heavy image jobs (decode → canvas → JPEG) to run at once. Browsers encode on
+ * background threads, so this scales with cores; low-memory phones get fewer, because each job
+ * holds a full-size bitmap.
+ */
+export function parallelism() {
+  if (typeof navigator === 'undefined') return 2
+  const cores = navigator.hardwareConcurrency || 2
+  const memory = navigator.deviceMemory ?? 4 // GB; Chrome-only, capped at 8
+  return Math.max(1, Math.min(cores, memory <= 2 ? 2 : 4))
+}
+
+/** Like Promise.all(items.map(fn)), but with at most `limit` running at a time. Results keep their order. */
+export async function mapLimit(items, limit, fn) {
+  const out = new Array(items.length)
+  let next = 0
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++
+      out[i] = await fn(items[i], i)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  return out
+}
 
 export const range = (n) => Array.from({ length: n }, (_, i) => i)
 
@@ -81,6 +105,8 @@ export async function packResult({ files, zipName = 'files.zip' }) {
     const blob = f.data instanceof Blob ? f.data : new Blob([f.data], { type: f.type })
     return { blob, name: f.name, type: f.type, count: 1 }
   }
+  // Loaded only when a result needs zipping: keeps ~95 KB off every page load.
+  const { default: JSZip } = await import('jszip')
   const zip = new JSZip()
   const used = new Set()
   for (const f of files) zip.file(uniqueName(f.name, used), f.data)

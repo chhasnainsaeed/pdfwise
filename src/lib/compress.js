@@ -8,7 +8,7 @@ import {
   PDFRef,
   decodePDFRawStream,
 } from 'pdf-lib'
-import { canvasToBlob } from './files.js'
+import { canvasToBlob, mapLimit, parallelism } from './files.js'
 
 const N = (n) => PDFName.of(n)
 
@@ -40,9 +40,11 @@ export async function compressPdf(file, level, progress) {
       obj instanceof PDFRawStream && obj.dict.lookup(N('Subtype')) === N('Image') && !masks.has(ref.toString()),
   )
 
+  // Several images at once: JPEG encoding runs on the browser's background threads, so this is
+  // roughly N× faster on N cores, with identical output.
   let replaced = 0
-  for (let i = 0; i < images.length; i++) {
-    const [ref, stream] = images[i]
+  let done = 0
+  await mapLimit(images, parallelism(), async ([ref, stream]) => {
     try {
       const next = await recompressImage(stream, settings)
       if (next) {
@@ -52,8 +54,8 @@ export async function compressPdf(file, level, progress) {
     } catch (e) {
       console.warn('Skipping image', ref.toString(), e)
     }
-    progress?.(i + 1, images.length)
-  }
+    progress?.(++done, images.length)
+  })
 
   const bytes = await pdf.save({ useObjectStreams: true })
   const smaller = bytes.length < original.length

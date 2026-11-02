@@ -264,8 +264,9 @@ and AI search.
 PDFwise is a Progressive Web App. Chrome, Edge and Android show **Install app** in the header, and on
 iPhone or iPad the button explains *Share → Add to Home Screen*. Once installed:
 
-- **Works offline.** The service worker stores every page and built file (about 4.7 MB) after the
-  first visit. Every tool that runs in the browser works with no connection. OCR language data and
+- **Works offline.** The service worker stores every page and built file (about 4.8 MB) after the
+  first visit. With Data Saver on, or on 2G, it stores only the core (pages, main script and styles,
+  about 0.5 MB) and caches each tool's code the first time it's used. Every tool that runs in the browser works with no connection. OCR language data and
   web fonts are cached the first time they're used. Office → PDF and HTML → PDF still need the server,
   and they say so when you're offline.
 - **Share into PDFwise** (Android): share a PDF or image from WhatsApp, Gmail, Files and so on. It
@@ -392,6 +393,18 @@ To rename the product, change `BRAND` in `src/tools.js`, the `<title>` in `index
 logo in `src/components/Logo.jsx` / `public/favicon.svg`.
 
 Each tool's code loads on demand, so the OCR, qpdf and docx libraries only download on their own pages.
+
+## Performance notes
+
+- The home page loads only the app shell, about 80 KB of compressed script. Everything else loads on
+  demand: each tool's code, pdf.js, pdf-lib, qpdf, OCR, JSZip (only when a result is zipped), the
+  handwriting fonts (only in Sign PDF) and the three.js scene.
+- The 3D scene is skipped on Data Saver and on devices with 2 GB of memory or less, or 2 cores or
+  fewer. Elsewhere it pauses off-screen and in background tabs, and drops to 30 fps when nobody is
+  interacting with it.
+- Image work runs in parallel: Compress PDF re-encodes several images at once, and PDF to JPG overlaps
+  page encoding with rendering. Browsers encode JPEGs on background threads, so this scales with
+  cores. The limit is `parallelism()` in `src/lib/files.js`: up to 4, or 2 on low-memory phones.
 
 ## Notes
 

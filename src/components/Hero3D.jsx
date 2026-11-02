@@ -185,7 +185,9 @@ export default function Hero3D() {
     let hovered = null
     // Skip hits while the pointer is over real controls (the drop card, buttons, links).
     let interactiveUnderPointer = false
+    let lastInput = 0
     const onMove = (e) => {
+      lastInput = performance.now()
       const r = el.getBoundingClientRect()
       pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
       look.x = pointer.x
@@ -272,9 +274,15 @@ export default function Hero3D() {
 
     let raf = 0
     let visible = true
+    // Full frame rate while someone interacts (pointer, drag); 30 fps for the idle drift, which
+    // looks the same and halves the GPU and battery cost while people read the page.
+    let lastFrame = 0
     const loop = (now) => {
-      frame(now)
       raf = requestAnimationFrame(loop)
+      const active = now - lastInput < 1500 || excite > 0.01
+      if (!active && now - lastFrame < 32) return
+      lastFrame = now
+      frame(now)
     }
     const start = () => {
       if (!raf && visible && !document.hidden && !reduced) {

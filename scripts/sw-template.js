@@ -2,7 +2,8 @@
 /* eslint-disable no-restricted-globals */
 
 const VERSION = '__VERSION__'
-const PRECACHE = __PRECACHE__
+const PRECACHE_CORE = __PRECACHE_CORE__
+const PRECACHE_REST = __PRECACHE_REST__
 const CORE = `pdfwise-core-${VERSION}`
 const RUNTIME = 'pdfwise-runtime' // OCR engine + language data, web fonts
 const SHARE = 'pdfwise-share' // files shared into the installed app, until the page picks them up
@@ -14,6 +15,10 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CORE)
+      // Data Saver / 2G: only the core now; tool code is cached the first time it's used.
+      const conn = self.navigator.connection
+      const lean = Boolean(conn?.saveData) || ['slow-2g', '2g'].includes(conn?.effectiveType)
+      const PRECACHE = lean ? PRECACHE_CORE : [...PRECACHE_CORE, ...PRECACHE_REST]
       // One by one, so a single failed file doesn't throw away everything else.
       const results = await Promise.allSettled(
         PRECACHE.map(async (url) => {

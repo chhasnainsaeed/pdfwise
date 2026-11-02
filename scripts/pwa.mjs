@@ -31,10 +31,21 @@ const version = hash.digest('hex').slice(0, 12)
 // Pre-rendered pages are cached under their clean URLs (/merge-pdf), the way they're requested.
 const urls = files.map((f) => (f === 'index.html' ? '/' : f.endsWith('.html') ? `/${f.slice(0, -5)}` : `/${f}`))
 
+// Core: what every page needs to open offline. Pages, the entry script and styles it loads, icons and
+// the manifest. The rest (each tool's code, pdf.js, qpdf, the 3D scene) is precached too, except on
+// Data Saver or 2G, where it's cached the first time it's used instead.
+const entry = readFileSync(path.join(dist, 'index.html'), 'utf8')
+const entryAssets = new Set([...entry.matchAll(/(?:src|href)="\/(assets\/[^"]+)"/g)].map((m) => `/${m[1]}`))
+const isCore = (u) => !u.startsWith('/assets/') || entryAssets.has(u)
+const core = urls.filter(isCore)
+const rest = urls.filter((u) => !isCore(u))
+const kb = (list) => (list.reduce((n, u) => n + statSync(path.join(dist, u === '/' ? 'index.html' : u.startsWith('/assets/') || u.includes('.') ? u.slice(1) : `${u.slice(1)}.html`)).size, 0) / 1024 / 1024).toFixed(1)
+
 const sw = template
   .replace('__VERSION__', version)
-  .replace('__PRECACHE__', JSON.stringify(urls, null, 2))
+  .replace('__PRECACHE_CORE__', JSON.stringify(core, null, 2))
+  .replace('__PRECACHE_REST__', JSON.stringify(rest, null, 2))
 writeFileSync(path.join(dist, 'sw.js'), sw)
 
 const bytes = files.reduce((n, f) => n + statSync(path.join(dist, f)).size, 0)
-console.log(`[pwa] sw.js ${version}: ${urls.length} files (${(bytes / 1024 / 1024).toFixed(1)} MB) available offline`)
+console.log(`[pwa] sw.js ${version}: ${urls.length} files (${(bytes / 1024 / 1024).toFixed(1)} MB) available offline — core ${core.length} files (${kb(core)} MB), rest ${rest.length} (${kb(rest)} MB, skipped on Data Saver)`)

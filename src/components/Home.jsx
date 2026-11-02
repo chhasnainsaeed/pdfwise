@@ -29,6 +29,14 @@ const FEATURES = [
   },
 ]
 
+/** The 3D scene is decoration: skip it on Data Saver and on low-memory or low-core devices. */
+function canAfford3D() {
+  if (typeof navigator === 'undefined') return false
+  if (navigator.connection?.saveData) return false
+  if ((navigator.deviceMemory ?? 8) <= 2 || (navigator.hardwareConcurrency ?? 8) <= 2) return false
+  return true
+}
+
 function useIdle() {
   const [ready, setReady] = useState(false)
   useEffect(() => {
@@ -79,13 +87,14 @@ export default function Home() {
   const [recent] = useState(() => recentTools().map((id) => TOOLS_BY_ID[id]).filter(Boolean))
   const tools = filter === 'all' ? TOOLS : TOOLS.filter((t) => t.category === filter)
   const idle = useIdle()
+  const [with3D] = useState(canAfford3D)
 
   useEffect(() => applyHead(HOME_SEO), [])
 
   return (
     <div className="home">
       <section className="hero3d">
-        {idle && (
+        {idle && with3D && (
           <Suspense fallback={null}>
             <Hero3D />
           </Suspense>
