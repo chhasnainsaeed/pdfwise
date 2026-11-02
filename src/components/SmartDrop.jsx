@@ -6,12 +6,12 @@ import { uid } from '../lib/files.js'
 import { EXCITE, openPalette } from '../lib/events.js'
 import { bucket, track } from '../lib/analytics.js'
 import { handOff } from '../lib/handoff.js'
+import { usePaste, useWindowFileDrop } from '../lib/hooks.js'
 import { PWA_EVENT, takeIncoming } from '../lib/pwa.js'
 import { TOOLS_BY_ID } from '../tools.js'
 import ToolIcon from './ToolIcon.jsx'
 
 const ACCEPT = '.pdf,application/pdf,image/*,.doc,.docx,.odt,.rtf,.txt,.xls,.xlsx,.ods,.csv,.ppt,.pptx,.odp'
-const hasFiles = (e) => Array.from(e.dataTransfer?.types ?? []).includes('Files')
 const excite = (on) => window.dispatchEvent(new CustomEvent(EXCITE, { detail: on }))
 
 /**
@@ -61,64 +61,24 @@ export default function SmartDrop() {
     return () => window.removeEventListener(PWA_EVENT, on)
   }, [analyze, navigate])
 
-  useEffect(() => {
-    let depth = 0
-    const enter = (e) => {
-      if (!hasFiles(e)) return
-      e.preventDefault()
-      if (depth++ === 0) {
-        setOver(true)
-        excite(true)
-      }
-    }
-    const overFn = (e) => {
-      if (!hasFiles(e)) return
-      e.preventDefault()
-      e.dataTransfer.dropEffect = 'copy'
-    }
-    const leave = (e) => {
-      if (!hasFiles(e)) return
-      depth = Math.max(0, depth - 1)
-      if (!depth) {
-        setOver(false)
-        excite(false)
-      }
-    }
-    const drop = (e) => {
-      if (!hasFiles(e)) return
-      e.preventDefault()
-      depth = 0
-      setOver(false)
-      analyze(e.dataTransfer.files)
-    }
-    const paste = (e) => {
-      if (e.target.closest?.('input, textarea, [contenteditable="true"]')) return
-      const files = Array.from(e.clipboardData?.files ?? [])
-      if (files.length) {
-        e.preventDefault()
-        analyze(files)
-        return
-      }
-      const url = findUrl(e.clipboardData?.getData('text'))
-      if (url) {
-        e.preventDefault()
-        handOff('html-to-pdf', [], { url })
-        navigate('/html-to-pdf')
-      }
-    }
-    window.addEventListener('dragenter', enter)
-    window.addEventListener('dragover', overFn)
-    window.addEventListener('dragleave', leave)
-    window.addEventListener('drop', drop)
-    window.addEventListener('paste', paste)
-    return () => {
-      window.removeEventListener('dragenter', enter)
-      window.removeEventListener('dragover', overFn)
-      window.removeEventListener('dragleave', leave)
-      window.removeEventListener('drop', drop)
-      window.removeEventListener('paste', paste)
-    }
-  }, [analyze, navigate])
+  // Drop anywhere on the home page; paste files, or a link for HTML to PDF.
+  useWindowFileDrop({
+    onDrop: analyze,
+    onActive: (on) => {
+      setOver(on)
+      excite(on)
+    },
+  })
+  usePaste({
+    onFiles: analyze,
+    onText: (text) => {
+      const url = findUrl(text)
+      if (!url) return false
+      handOff('html-to-pdf', [], { url })
+      navigate('/html-to-pdf')
+      return true
+    },
+  })
 
   const open = (id) => {
     const tool = TOOLS_BY_ID[id]

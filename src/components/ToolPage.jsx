@@ -1,24 +1,25 @@
-import { ArrowLeft, ClipboardPaste, Download, FileText, RotateCcw, Server, ShieldCheck, Upload } from 'lucide-react'
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { KINDS, PDF_TYPE, UserError, acceptFor, formatBytes, friendlyError, matchesKind, packResult, sleep, uid } from '../lib/files.js'
+import { Upload } from 'lucide-react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { bucket, timeBucket, track } from '../lib/analytics.js'
-import { clearHandoff, handOff, peekHandoff, rememberTool } from '../lib/handoff.js'
-import { SessionContext } from '../lib/hooks.js'
-import { ALIASES, TOOL_SEO, applyHead, siblingPages } from '../seo.js'
+import { KINDS, UserError, acceptFor, friendlyError, matchesKind, packResult, sleep, uid } from '../lib/files.js'
+import { clearHandoff, peekHandoff, rememberTool } from '../lib/handoff.js'
+import { SessionContext, usePaste, useWindowFileDrop } from '../lib/hooks.js'
+import { ALIASES, TOOL_SEO, applyHead } from '../seo.js'
 import { TOOLS_BY_ID } from '../tools.js'
 import { TOOL_COMPONENTS } from '../tools/index.jsx'
-import { useOnline } from './AppStatus.jsx'
-import ToolIcon from './ToolIcon.jsx'
+import DoneStage from './session/DoneStage.jsx'
+import ProcessingOverlay from './session/ProcessingOverlay.jsx'
+import ToolGuide from './session/ToolGuide.jsx'
+import UploadStage from './session/UploadStage.jsx'
 
-const hasFiles = (e) => Array.from(e.dataTransfer?.types ?? []).includes('Files')
-
+/** /:toolId — a tool, or a landing page (src/landing.js) that opens a tool with a preset. */
 export default function ToolPage() {
   const { toolId } = useParams()
   const alias = ALIASES[toolId]
   const tool = TOOLS_BY_ID[alias?.tool ?? toolId]
   if (!tool) return <NotFound />
-  return <ToolSession key={toolId} tool={tool} alias={alias} toolSlug={toolId} />
+  return <ToolSession key={toolId} tool={tool} alias={alias} slug={toolId} />
 }
 
 function NotFound() {
@@ -34,7 +35,17 @@ function NotFound() {
   )
 }
 
-function ToolSession({ tool, alias, toolSlug }) {
+const Loading = () => (
+  <div className="page-loading">
+    <span className="spinner" />
+  </div>
+)
+
+/**
+ * One use of a tool: upload → work (the tool's own screen) → processing → done.
+ * Tool screens get files, run() and errors through SessionContext (useSession()).
+ */
+function ToolSession({ tool, alias, slug }) {
   // URL-based tools (HTML to PDF) skip the upload step entirely.
   const usesFiles = !tool.urlInput
   const [incoming] = useState(() => peekHandoff(tool.id))
@@ -45,21 +56,18 @@ function ToolSession({ tool, alias, toolSlug }) {
   const [progress, setProgress] = useState(null)
   const [result, setResult] = useState(null)
   const [dropping, setDropping] = useState(false)
+  const seo = alias?.seo ?? TOOL_SEO[tool.id]
 
-  const page = toolSlug ?? tool.id
   useEffect(() => {
     clearHandoff()
     rememberTool(tool.id)
-    if (incoming?.items?.length) track('Files added', { tool: tool.id, page, files: bucket(incoming.items.length), via: incoming.source ?? 'handoff' })
-    // Runs once per session: `incoming` is captured on mount.
+    if (incoming?.items?.length) track('Files added', { tool: tool.id, page: slug, files: bucket(incoming.items.length), via: incoming.source ?? 'handoff' })
+    // Once per session: `incoming` is captured on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tool.id])
 
-  const seo = alias?.seo ?? TOOL_SEO[tool.id]
   useEffect(() => applyHead(seo), [seo])
-
   useEffect(() => () => result && URL.revokeObjectURL(result.url), [result])
-
   useEffect(() => {
     if (usesFiles && stage === 'work' && files.length === 0) setStage('upload')
   }, [usesFiles, stage, files.length])
@@ -68,96 +76,54 @@ function ToolSession({ tool, alias, toolSlug }) {
     (list, via = 'picker') => {
       const all = Array.from(list)
       const ok = all.filter((f) => matchesKind(f, tool.kind))
-      const noun = KINDS[tool.kind].noun
-      if (ok.length < all.length) setError(`Skipped ${all.length - ok.length} file(s) — ${tool.name} only accepts ${noun}.`)
+      if (ok.length < all.length) setError(`Skipped ${all.length - ok.length} file(s) — ${tool.name} only accepts ${KINDS[tool.kind].noun}.`)
       else if (!tool.multiple && ok.length > 1) setError(`${tool.name} works on one file at a time, so only “${ok[0].name}” was added.`)
       else setError('')
       if (!ok.length) return
+      track('Files added', { tool: tool.id, page: slug, files: bucket(ok.length), via })
       const items = ok.map((file) => ({ id: uid(), file }))
-      track('Files added', { tool: tool.id, page, files: bucket(ok.length), via })
       setFiles((prev) => (tool.multiple ? [...prev, ...items] : items.slice(0, 1)))
       setStage('work')
     },
-    [tool, page],
+    [tool, slug],
   )
 
-  const run = useCallback(async (task) => {
-    setError('')
-    setProgress(null)
-    setStage('processing')
-    const started = performance.now()
-    try {
-      const out = await task({ progress: (done, total, label) => setProgress({ done, total, label }) })
-      const packed = await packResult(out)
-      const elapsed = performance.now() - started
-      if (elapsed < 600) await sleep(600 - elapsed)
-      setResult({ ...packed, url: URL.createObjectURL(packed.blob), stats: out.stats, note: out.note })
-      setStage('done')
-      track('Tool completed', {
-        tool: tool.id,
-        page,
-        outputs: bucket(packed.count),
-        time: timeBucket(performance.now() - started),
-        offline: navigator.onLine ? 'no' : 'yes',
-        ...out.analytics,
-      })
-    } catch (e) {
-      console.error(e)
-      track('Tool failed', { tool: tool.id, page, reason: e instanceof UserError ? 'user' : 'error' })
-      setError(friendlyError(e))
-      setStage('work')
-    }
-  }, [tool.id, page])
-
-  // Page-wide drag & drop for adding files.
-  const acceptsDrop = usesFiles && (stage === 'upload' || (stage === 'work' && tool.multiple))
-  useEffect(() => {
-    let depth = 0
-    const enter = (e) => {
-      if (!hasFiles(e)) return
-      e.preventDefault()
-      depth++
-      if (acceptsDrop) setDropping(true)
-    }
-    const over = (e) => {
-      if (!hasFiles(e)) return
-      e.preventDefault()
-      e.dataTransfer.dropEffect = acceptsDrop ? 'copy' : 'none'
-    }
-    const leave = (e) => {
-      if (!hasFiles(e)) return
-      depth = Math.max(0, depth - 1)
-      if (!depth) setDropping(false)
-    }
-    const drop = (e) => {
-      if (!hasFiles(e)) return
-      e.preventDefault()
-      depth = 0
-      setDropping(false)
-      if (acceptsDrop) addFiles(e.dataTransfer.files, 'drop')
-    }
-    // Ctrl+V: pasted files (screenshots, copied PDFs) join the session like dropped ones.
-    const paste = (e) => {
-      if (e.target.closest?.('input, textarea, [contenteditable="true"]')) return
-      const pasted = Array.from(e.clipboardData?.files ?? [])
-      if (pasted.length && acceptsDrop) {
-        e.preventDefault()
-        addFiles(pasted, 'paste')
+  /** Runs a tool's task, shows progress, then the result. task({ progress }) → { files, zipName?, stats?, note?, analytics? } */
+  const run = useCallback(
+    async (task) => {
+      setError('')
+      setProgress(null)
+      setStage('processing')
+      const started = performance.now()
+      try {
+        const out = await task({ progress: (done, total, label) => setProgress({ done, total, label }) })
+        const packed = await packResult(out)
+        const elapsed = performance.now() - started
+        if (elapsed < 600) await sleep(600 - elapsed) // long enough to read, never a flash
+        setResult({ ...packed, url: URL.createObjectURL(packed.blob), stats: out.stats, note: out.note })
+        setStage('done')
+        track('Tool completed', {
+          tool: tool.id,
+          page: slug,
+          outputs: bucket(packed.count),
+          time: timeBucket(performance.now() - started),
+          offline: navigator.onLine ? 'no' : 'yes',
+          ...out.analytics,
+        })
+      } catch (e) {
+        console.error(e)
+        track('Tool failed', { tool: tool.id, page: slug, reason: e instanceof UserError ? 'user' : 'error' })
+        setError(friendlyError(e))
+        setStage('work')
       }
-    }
-    window.addEventListener('paste', paste)
-    window.addEventListener('dragenter', enter)
-    window.addEventListener('dragover', over)
-    window.addEventListener('dragleave', leave)
-    window.addEventListener('drop', drop)
-    return () => {
-      window.removeEventListener('paste', paste)
-      window.removeEventListener('dragenter', enter)
-      window.removeEventListener('dragover', over)
-      window.removeEventListener('dragleave', leave)
-      window.removeEventListener('drop', drop)
-    }
-  }, [acceptsDrop, addFiles])
+    },
+    [tool.id, slug],
+  )
+
+  // Files can be dropped or pasted anywhere on the page while the tool can take them.
+  const acceptsFiles = usesFiles && (stage === 'upload' || (stage === 'work' && tool.multiple))
+  useWindowFileDrop({ enabled: acceptsFiles, onDrop: (list) => addFiles(list, 'drop'), onActive: setDropping })
+  usePaste({ enabled: acceptsFiles, onFiles: (list) => addFiles(list, 'paste') })
 
   const restart = () => {
     setFiles([])
@@ -176,26 +142,18 @@ function ToolSession({ tool, alias, toolSlug }) {
       {stage === 'upload' && (
         <>
           <UploadStage tool={tool} title={alias?.name} lead={seo.lead} onFiles={addFiles} error={error} />
-          <ToolGuide tool={tool} title={alias?.name ?? tool.name} seo={seo} slug={alias ? toolSlug : null} />
+          <ToolGuide tool={tool} title={alias?.name ?? tool.name} seo={seo} slug={alias ? slug : null} />
         </>
       )}
       {stage !== 'upload' && (
         <div className="workspace-host" hidden={stage === 'done'}>
-          <Suspense
-            fallback={
-              <div className="page-loading">
-                <span className="spinner" />
-              </div>
-            }
-          >
+          <Suspense fallback={<Loading />}>
             <Workspace key={session} />
           </Suspense>
         </div>
       )}
       {stage === 'processing' && <ProcessingOverlay tool={tool} progress={progress} />}
-      {stage === 'done' && result && (
-        <DoneStage tool={tool} result={result} onBack={() => setStage('work')} onRestart={restart} />
-      )}
+      {stage === 'done' && result && <DoneStage tool={tool} result={result} onBack={() => setStage('work')} onRestart={restart} />}
       {dropping && (
         <div className="drop-overlay">
           <div className="drop-overlay-card">
@@ -205,219 +163,5 @@ function ToolSession({ tool, alias, toolSlug }) {
         </div>
       )}
     </SessionContext.Provider>
-  )
-}
-
-function UploadStage({ tool, title, lead, onFiles, error }) {
-  const input = useRef(null)
-  const online = useOnline()
-  const noun = KINDS[tool.kind].label
-  const plural = tool.multiple ? `${noun} files` : `${noun} file`
-  return (
-    <div className="stage-center upload-stage" style={{ '--c': tool.color }}>
-      <div className="icon-orbit" aria-hidden="true">
-        <span className="orbit-ring" />
-        <span className="orbit-ring orbit-ring-2" />
-        <ToolIcon tool={tool} size="lg" />
-      </div>
-      <h1 className="stage-title">{title ?? tool.name}</h1>
-      <p className="stage-lead">{lead ?? tool.description}</p>
-      <button type="button" className="btn btn-primary btn-xl" onClick={() => input.current.click()}>
-        <Upload size={22} />
-        Select {plural}
-      </button>
-      <p className="upload-hint">
-        or drop {plural} anywhere on this page · <ClipboardPaste size={14} /> paste with <kbd>Ctrl</kbd>+<kbd>V</kbd>
-      </p>
-      <input
-        ref={input}
-        type="file"
-        hidden
-        multiple={tool.multiple}
-        accept={acceptFor(tool.kind)}
-        onChange={(e) => {
-          onFiles(e.target.files)
-          e.target.value = ''
-        }}
-      />
-      {error && (
-        <div className="alert upload-alert" role="alert">
-          {error}
-        </div>
-      )}
-      {tool.server && !online && (
-        <div className="alert upload-alert" role="status">
-          You’re offline. {tool.name} needs a connection to the conversion server.
-        </div>
-      )}
-      <p className="privacy-note">
-        {tool.server ? <Server size={16} /> : <ShieldCheck size={16} />}
-        {tool.server
-          ? 'Converted on your PDFwise server — files are deleted as soon as the PDF is ready.'
-          : 'Processed on your device — your files never leave your browser.'}
-      </p>
-    </div>
-  )
-}
-
-function ProcessingOverlay({ tool, progress }) {
-  const pct = progress?.total ? Math.round((progress.done / progress.total) * 100) : null
-  return (
-    <div className="processing" role="status" aria-live="polite">
-      <div className="processing-card">
-        <span className="spinner spinner-lg" />
-        <h2>{tool.processing}</h2>
-        {progress?.label && <p className="processing-step">{progress.label}</p>}
-        {pct !== null ? (
-          <>
-            <div className="progress">
-              <div className="progress-bar" style={{ width: `${pct}%` }} />
-            </div>
-            {!progress.label && (
-              <p className="muted">
-                {progress.done} of {progress.total}
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="muted">This happens on your device, so it won’t take long.</p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function DoneStage({ tool, result, onBack, onRestart }) {
-  const navigate = useNavigate()
-  const isPdf = result.type === PDF_TYPE
-  const ext = result.name.split('.').pop().toLowerCase()
-  const label =
-    result.count > 1
-      ? `ZIP (${result.count} files)`
-      : { pdf: 'PDF', png: 'PNG', jpg: 'JPG', docx: 'Word file', txt: 'text file' }[ext] ?? 'file'
-  const related = isPdf ? tool.related.map((id) => TOOLS_BY_ID[id]).filter(Boolean) : []
-
-  const continueWith = (id) => {
-    handOff(id, [{ id: uid(), file: new File([result.blob], result.name, { type: PDF_TYPE }) }], { source: 'continue' })
-    navigate(`/${id}`)
-  }
-
-  return (
-    <div className="stage-center done-stage">
-      <h1 className="stage-title">{tool.done}</h1>
-      {result.stats && <CompressStats stats={result.stats} />}
-      {result.note && <p className="stage-lead">{result.note}</p>}
-
-      <div className="done-card">
-        <div className="done-file">
-          <FileText size={20} />
-          <span className="done-file-name">{result.name}</span>
-          <span className="muted">{formatBytes(result.blob.size)}</span>
-        </div>
-        <a
-          className="btn btn-primary btn-xl"
-          href={result.url}
-          download={result.name}
-          onClick={() => track('Download', { tool: tool.id, outputs: bucket(result.count) })}
-        >
-          <Download size={22} />
-          Download {label}
-        </a>
-      </div>
-
-      <div className="done-links">
-        <button type="button" className="btn btn-ghost" onClick={onBack}>
-          <ArrowLeft size={18} /> Back to editing
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={onRestart}>
-          <RotateCcw size={18} /> Start over
-        </button>
-      </div>
-
-      {related.length > 0 && (
-        <section className="continue">
-          <h2>Continue with this file</h2>
-          <div className="continue-grid">
-            {related.map((t) => (
-              <button key={t.id} type="button" className="continue-item" onClick={() => continueWith(t.id)}>
-                <ToolIcon tool={t} size="sm" />
-                <span>{t.name}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-  )
-}
-
-function CompressStats({ stats }) {
-  const saved = stats.before > 0 ? Math.round((1 - stats.after / stats.before) * 100) : 0
-  return (
-    <div className="compress-stats">
-      <div className="ring" style={{ '--p': Math.max(saved, 0) }}>
-        <span>{saved > 0 ? `-${saved}%` : '0%'}</span>
-      </div>
-      <div>
-        <strong>{saved > 0 ? `Your PDF is ${saved}% smaller` : 'This PDF was already well optimized'}</strong>
-        <p className="muted">
-          {formatBytes(stats.before)} → {formatBytes(stats.after)}
-        </p>
-      </div>
-    </div>
-  )
-}
-
-/** How-to steps, FAQ and related tools under the upload area — for people and search engines. */
-function ToolGuide({ tool, title, seo, slug }) {
-  const related = (slug ? [tool.id, ...tool.related] : tool.related).map((id) => TOOLS_BY_ID[id]).filter(Boolean)
-  const more = siblingPages(slug, slug ? 8 : 6).filter(() => slug || tool.id === 'compress-pdf' || tool.id === 'pdf-workflows')
-  return (
-    <section className="tool-guide" aria-labelledby="guide-title">
-      {seo.about && <p className="guide-about">{seo.about}</p>}
-      <h2 id="guide-title">How to use {title}</h2>
-      <ol className="guide-steps">
-        {seo.steps.map((step, i) => (
-          <li key={i}>
-            <span className="guide-num">{i + 1}</span>
-            <span>{step}</span>
-          </li>
-        ))}
-      </ol>
-      <h2>Frequently asked questions</h2>
-      <div className="guide-faq">
-        {seo.faq.map(([q, a]) => (
-          <details key={q}>
-            <summary>{q}</summary>
-            <p>{a}</p>
-          </details>
-        ))}
-      </div>
-      {more.length > 0 && (
-        <>
-          <h2>More ways to get it done</h2>
-          <div className="size-links-row guide-more">
-            {more.map((m) => (
-              <Link key={m.path} to={m.path} className="chip chip-lg">
-                {m.name}
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
-      {related.length > 0 && (
-        <>
-          <h2>Related tools</h2>
-          <div className="continue-grid">
-            {related.map((t) => (
-              <Link key={t.id} to={`/${t.id}`} className="continue-item">
-                <ToolIcon tool={t} size="sm" />
-                <span>{t.name}</span>
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
-    </section>
   )
 }

@@ -1,0 +1,428 @@
+/* PDF Workflows builder. */
+
+/* ---------- Workflows ---------- */
+
+.new-badge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: linear-gradient(120deg, var(--brand), #c03ae0);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  box-shadow: 0 6px 14px -6px var(--brand);
+}
+
+.processing-step {
+  margin: 6px 0 0;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.wf-main {
+  perspective: 1400px;
+}
+
+.wf {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.wf-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wf-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 260px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.wf-file small {
+  flex: none;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.wf-file button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-3);
+}
+
+.wf-file button:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.wf-name {
+  display: block;
+  width: 100%;
+  margin: 22px 0 8px;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  outline: none;
+}
+
+.wf-name:hover,
+.wf-name:focus {
+  border-bottom-color: var(--line-2);
+}
+
+.wf-pipeline {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 0;
+  list-style: none;
+}
+
+/* The rail that connects every step. */
+.wf-pipeline::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 23px;
+  width: 2px;
+  background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--brand) 45%, transparent) 0 6px, transparent 6px 12px);
+  animation: rail 1.2s linear infinite;
+}
+
+@keyframes rail {
+  to {
+    background-position: 0 12px;
+  }
+}
+
+.wf-node-io {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 8px 14px 8px 16px;
+  width: fit-content;
+  border-radius: 99px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.wf-node-out {
+  background: var(--brand);
+}
+
+.wf-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.25);
+}
+
+.wf-step {
+  position: relative;
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transform-origin: left center;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  animation: step-in 0.45s calc(var(--i) * 70ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.wf-step:hover {
+  transform: translateZ(18px) rotateY(-2deg);
+  box-shadow: 0 18px 34px -18px color-mix(in srgb, var(--c) 55%, transparent), var(--shadow);
+}
+
+.wf-step.is-open {
+  border-color: color-mix(in srgb, var(--c) 50%, var(--line));
+}
+
+.wf-step.is-over {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: rotateX(-40deg) translateY(16px);
+  }
+}
+
+.wf-step-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 6px;
+}
+
+.wf-grip {
+  color: var(--ink-3);
+  cursor: grab;
+}
+
+.wf-num {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--c);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wf-step-main {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.wf-step-main strong {
+  display: block;
+  font-size: 15px;
+}
+
+.wf-step-main small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+.wf-step-main small.wf-needs {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.wf-step-tools {
+  display: flex;
+  gap: 2px;
+  flex: none;
+}
+
+.wf-step-tools .icon-btn {
+  width: 32px;
+  height: 32px;
+}
+
+.wf-step-tools .icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.wf-chev svg {
+  transition: transform 0.2s;
+}
+
+.is-open .wf-chev svg {
+  transform: rotate(180deg);
+}
+
+.wf-step-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 4px 16px 16px 66px;
+}
+
+.wf-add {
+  position: relative;
+  margin: 12px 0;
+}
+
+.wf-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  padding: 9px 16px;
+  border: 2px dashed var(--line-2);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+.wf-add-btn:hover,
+.wf-add-btn.is-open {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.wf-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-lg);
+  animation: palette-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.wf-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.wf-pick:hover {
+  background: var(--brand-soft);
+}
+
+.wf-side-title {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-3);
+}
+
+.wf-recipes {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.wf-recipe {
+  display: grid;
+  gap: 2px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.wf-recipe:hover {
+  border-color: var(--ink-3);
+  transform: translateX(2px);
+}
+
+.wf-recipe.is-active {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.wf-recipe strong {
+  font-size: 14px;
+}
+
+.wf-recipe small {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+
+.wf-recipe-steps {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.wf-saved {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.wf-saved-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wf-saved-row > button:first-child {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: left;
+}
+
+.wf-saved-row small {
+  margin-left: auto;
+  flex: none;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.wf-share {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wf-flash {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--ok);
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .wf-step-body {
+    padding-left: 16px;
+  }
+  .wf-grip {
+    display: none;
+  }
+  .wf-chev {
+    display: none;
+  }
+  .wf-step-tools .icon-btn {
+    width: 30px;
+  }
+}

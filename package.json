@@ -8,7 +8,9 @@
     "build": "vite build && node scripts/prerender.mjs && node scripts/pwa.mjs",
     "preview": "vite preview",
     "server": "node server/index.js",
-    "start": "npm run build && node server/index.js"
+    "start": "npm run build && node server/index.js",
+    "test": "node --test",
+    "new-tool": "node scripts/new-tool.mjs"
   },
   "dependencies": {
     "@neslinesli93/qpdf-wasm": "^0.3.0",

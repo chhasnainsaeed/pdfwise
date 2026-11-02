@@ -1,0 +1,251 @@
+/* Tool icons, home page grid, features and footer. */
+
+/* ---------- Tool icons ---------- */
+
+.tool-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 13%, #fff);
+  border-radius: 12px;
+}
+
+.tool-icon-xs {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.tool-icon-xs svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tool-icon-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.tool-icon-sm svg {
+  width: 20px;
+  height: 20px;
+}
+
+.tool-icon-md {
+  width: 52px;
+  height: 52px;
+}
+
+.tool-icon-md svg {
+  width: 28px;
+  height: 28px;
+}
+
+.tool-icon-lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+}
+
+.tool-icon-lg svg {
+  width: 38px;
+  height: 38px;
+}
+
+/* ---------- Home ---------- */
+
+.home {
+  background:
+    radial-gradient(1200px 400px at 50% -120px, color-mix(in srgb, var(--brand) 10%, transparent), transparent 70%),
+    #fff;
+}
+
+.hero {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 72px 24px 32px;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: clamp(32px, 5.2vw, 54px);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.hl {
+  color: var(--brand);
+}
+
+.hero p {
+  max-width: 640px;
+  margin: 20px auto 0;
+  font-size: 18px;
+  color: var(--ink-2);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 24px 28px;
+}
+
+.pill {
+  border: 1px solid var(--line-2);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.pill:hover {
+  border-color: var(--ink-3);
+  color: var(--ink);
+}
+
+.pill.is-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+
+.tool-card {
+  display: block;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 22px 22px 24px;
+  text-decoration: none;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+
+.tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: color-mix(in srgb, var(--c) 45%, var(--line));
+}
+
+.tool-card h3 {
+  margin: 16px 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.tool-card p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 24px 80px;
+}
+
+.feature {
+  background: var(--bg);
+  border-radius: 18px;
+  padding: 28px;
+}
+
+.feature-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  margin-bottom: 14px;
+}
+
+.feature h3 {
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+
+.feature p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: #fbfbfd;
+}
+
+.footer-inner {
+  display: grid;
+  grid-template-columns: 1.6fr repeat(4, 1fr);
+  gap: 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 48px 24px 32px;
+}
+
+.footer-brand p {
+  color: var(--ink-3);
+  font-size: 14px;
+  max-width: 300px;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-col h4 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+
+.footer-col a {
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.footer-col a:hover {
+  color: var(--brand);
+}
+
+.footer-bottom {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 24px 32px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: 13px;
+}

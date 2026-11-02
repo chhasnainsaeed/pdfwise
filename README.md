@@ -310,17 +310,51 @@ single tool.
   the pointer. Click a page to open that tool. The scene loads in its own chunk after the page is
   idle, pauses when off-screen, and stays still with “reduce motion” turned on.
 
+## Adding a tool
+
+```bash
+npm run new-tool -- "Grayscale PDF" --category edit --kind pdf --icon Contrast --multiple
+```
+
+This creates `src/tools/GrayscalePDF.jsx`, a working screen to fill in, and adds the tool's entry to
+[src/tools.js](src/tools.js), plus its icon to `src/components/icons.js` if needed. Without
+arguments it asks for the details. The tool then appears everywhere on its own: home grid, menus,
+`Ctrl+K` search, the 3D scene, its own pre-rendered SEO page, the sitemap and `llms.txt`.
+
+A tool is one entry in `src/tools.js`. That entry holds its name, category, icon, screen, accepted
+files, copy, related tools, search keywords, extra FAQs and optional custom how-to steps. The comment
+at the top of the list explains each field. Tool screens use `useSession()` for the session's files
+and `run(task)`. `run` shows progress and the download screen, zips several results, and records
+analytics.
+
+Then run:
+
+```bash
+npm test
+```
+
+[tests/](tests) checks that every tool's fields, category, icon, screen and related tools exist. It
+also checks that every page's title and description is unique and sized well for search results,
+that landing-page presets are valid workflows, and that workflow validation and share links behave.
+It uses Node's built-in test runner, so no extra packages are needed.
+
 ## Project layout
 
 ```
 src/
-  tools.js            tool registry (name, color, copy, related tools) and the BRAND constant
-  seo.js              page titles, descriptions, keywords, how-to steps, FAQs; landing-page aliases
+  tools.js            the tool registry: everything about each tool (see “Adding a tool”)
+  seo.js              page titles, descriptions, how-to steps and FAQs; landing-page aliases; related links
   landing.js          landing pages for specific searches (size, combine, task) with tool presets
-  components/         shell: header, home grid, tool session (upload → edit → done), thumbnails,
-                      Hero3D (three.js scene), SmartDrop, CommandPalette
-  tools/              one workspace component per tool
+  components/
+    ToolPage.jsx      /:toolId — the tool session: upload → the tool's screen → processing → done
+    session/          UploadStage, ProcessingOverlay, DoneStage, ToolGuide (how-to, FAQ, related)
+    icons.js          lucide icons tools may use, by name
+    Home, Header, Footer, Hero3D (three.js scene), SmartDrop, CommandPalette, AppStatus, …
+  tools/              one screen per tool, loaded on demand; index.jsx maps them from the registry
+  styles/             index.css imports, in cascade order: base, header, home, tool-stages, workspace,
+                      controls, tool-screens, responsive, immersive, workflows, app, landing
   lib/
+    hooks.js          SessionContext/useSession, page-wide file drop and paste, reorder, sizing
     ops.js            pdf-lib operations (merge, split, rotate, numbers, watermark, crop, sign)
     edit.js           draws Edit PDF elements into the document
     redact.js         text search and permanent redaction
@@ -339,16 +373,19 @@ src/
     server.js         client for the conversion server
     pdfjs.js          PDF.js setup, rendering and the lazy thumbnail cache
     geometry.js       visual ↔ PDF user-space mapping for rotated pages
+tests/                registry and workflow checks (npm test)
 scripts/
-  prerender.mjs       per-page static HTML, sitemap.xml, robots.txt and llms.txt after the Vite build
+  new-tool.mjs        scaffolds a tool (npm run new-tool)
+  prerender.mjs       per-page static HTML, 404.html, sitemap.xml, robots.txt and llms.txt after the Vite build
   pwa.mjs             writes dist/sw.js: offline file list + version hash
   sw-template.js      the service worker: offline caching, share target, updates
 server/
-  index.js            routes, engine selection, auth, rate limiting
+  index.js            routes, engine selection, auth, rate limiting, static files and cache headers
   engines/            libreoffice.js, browser.js (puppeteer-core + installed Chrome/Edge)
   office/             built-in DOCX/DOC/ODT/RTF/TXT, spreadsheet, PPTX and ODP → HTML
   egress-proxy.js     the checking proxy all headless-browser traffic goes through
   url-guard.js        address checks shared by the proxy and request interception
+deploy/Caddyfile, docker-compose.yml, Dockerfile, .env.example   production deployment (see Deploy)
 ```
 
 To rename the product, change `BRAND` in `src/tools.js`, the `<title>` in `index.html`, and the

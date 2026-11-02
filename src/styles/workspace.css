@@ -1,0 +1,497 @@
+/* Two-pane tool workspace, file cards and page thumbnails. */
+
+/* ---------- Workspace ---------- */
+
+.workspace {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--side-w);
+  height: calc(100dvh - var(--header-h));
+}
+
+.ws-main {
+  overflow: auto;
+  padding: 32px;
+  background: var(--bg);
+}
+
+.ws-main.is-fill {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ws-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #fff;
+  border-left: 1px solid var(--line);
+}
+
+.side-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.side-head h1 {
+  font-size: 20px;
+  font-weight: 750;
+}
+
+.side-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 24px;
+}
+
+.side-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+}
+
+.side-text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.side-text.small {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.side-hint {
+  margin: 0;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.inline-icon {
+  vertical-align: -2px;
+}
+
+.add-files {
+  position: absolute;
+  top: 20px;
+  right: calc(var(--side-w) + 20px);
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--brand) 40%, transparent);
+}
+
+.add-files:hover {
+  background: var(--brand-ink);
+}
+
+.add-files-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--danger-soft);
+  color: #a61b20;
+  font-size: 14px;
+  text-align: left;
+}
+
+.alert > span {
+  flex: 1;
+}
+
+.alert-close {
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 2px;
+  opacity: 0.7;
+}
+
+.inline-alert {
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* ---------- File cards ---------- */
+
+.file-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  padding-top: 20px;
+}
+
+.file-card {
+  position: relative;
+  width: 192px;
+  padding: 14px 14px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow 0.15s,
+    outline-color 0.15s;
+  outline: 2px dashed transparent;
+  outline-offset: 4px;
+}
+
+.file-card.is-draggable {
+  cursor: grab;
+}
+
+.file-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.file-card.is-over,
+.page-tile.is-over {
+  outline-color: var(--brand);
+}
+
+.file-card.is-dragging,
+.page-tile.is-dragging {
+  opacity: 0.4;
+}
+
+.file-card-thumb {
+  display: grid;
+  place-items: center;
+  height: 172px;
+  border-radius: 10px;
+  background: #f1f1f6;
+}
+
+.file-card-name {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-card-meta {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.file-card-order {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.file-card-order .mini-btn {
+  width: 26px;
+  height: 26px;
+}
+
+.card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.file-card:hover .card-actions,
+.file-card:focus-within .card-actions,
+.page-tile:hover .card-actions,
+.page-tile:focus-within .card-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .card-actions {
+    opacity: 1;
+  }
+}
+
+.thumb-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.image-frame {
+  display: grid;
+  place-items: center;
+  max-width: 150px;
+  max-height: 150px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.image-frame.is-fit {
+  background: transparent;
+  box-shadow: none;
+}
+
+.image-thumb {
+  display: block;
+  max-width: 150px;
+  max-height: 150px;
+  object-fit: contain;
+}
+
+.image-frame.is-page .image-thumb {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.image-frame.is-fit .image-thumb {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* ---------- Page thumbnails ---------- */
+
+.thumb {
+  position: relative;
+  flex: none;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.06);
+  container-type: inline-size;
+  overflow: hidden;
+}
+
+/* Only the page image itself — overlay images (signatures, edits) position themselves. */
+.thumb > img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  transition: transform 0.25s ease;
+  user-select: none;
+}
+
+.thumb-skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, #f3f3f7 30%, #e9e9f0 50%, #f3f3f7 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.thumb-skeleton.is-failed {
+  animation: none;
+  background: var(--danger-soft);
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -150% 0;
+  }
+}
+
+.page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  gap: 18px;
+  padding-top: 20px;
+}
+
+.page-grid.is-large {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.page-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 12px 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  outline: 2px solid transparent;
+  outline-offset: -1px;
+  transition:
+    outline-color 0.12s,
+    box-shadow 0.12s,
+    opacity 0.12s;
+}
+
+.page-tile.is-draggable {
+  cursor: grab;
+}
+
+.page-tile.is-selectable {
+  cursor: pointer;
+  font: inherit;
+}
+
+.page-tile.is-selectable:hover {
+  box-shadow: var(--shadow);
+}
+
+.page-frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 156px;
+}
+
+.is-large .page-frame {
+  height: 216px;
+}
+
+.page-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.page-tile.is-removed {
+  outline-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.page-tile.is-removed .thumb {
+  opacity: 0.45;
+}
+
+.page-tile.is-picked {
+  outline-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.pick-badge {
+  position: absolute;
+  top: -6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--brand);
+  box-shadow: var(--shadow);
+}
+
+.is-removed .pick-badge {
+  background: var(--danger);
+}
+
+.page-tile.is-dim {
+  opacity: 0.4;
+}
+
+.page-tile.is-grouped {
+  outline-color: color-mix(in srgb, var(--g) 70%, transparent);
+  background: color-mix(in srgb, var(--g) 6%, #fff);
+}
+
+.group-tag {
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  z-index: 2;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--g);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.file-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.file-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.file-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.stamp-text {
+  position: absolute;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.stamp-text.h-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.wm-text {
+  position: absolute;
+  line-height: 1;
+  white-space: nowrap;
+  font-weight: 700;
+  pointer-events: none;
+}

@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { initAnalytics } from './lib/analytics.js'
 import { listenForInstall, listenForLaunchedFiles, registerServiceWorker } from './lib/pwa.js'
-import './styles.css'
+import './styles/index.css'
 
 initAnalytics()
 registerServiceWorker()

@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { LANDING_GROUPS } from '../src/landing.js'
-import { ALIASES, HOME_SEO, allPages, siblingPages } from '../src/seo.js'
+import { ALIASES, HOME_SEO, allPages, moreLinks } from '../src/seo.js'
 import { BRAND, CATEGORIES, TOOLS } from '../src/tools.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -114,7 +114,7 @@ function body(page) {
   const steps = page.seo.steps.map((s) => `<li>${esc(s)}</li>`).join('')
   const faq = page.seo.faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')
   const related = (page.slug ? [t.id, ...t.related] : t.related).map((id) => TOOLS.find((x) => x.id === id)).filter(Boolean)
-  const more = page.slug || ['compress-pdf', 'pdf-workflows'].includes(t.id) ? siblingPages(page.slug, 8) : []
+  const more = moreLinks(t, page.slug)
   const about = page.seo.about ? `<p>${esc(page.seo.about)}</p>` : ''
   const moreHtml = more.length ? `<h2>More ways to get it done</h2><ul>${more.map((m) => `<li><a href="${m.path}">${esc(m.name)}</a></li>`).join('')}</ul>` : ''
   return `<main class="seo-static"><nav><a href="/">${esc(BRAND)}</a></nav><h1>${esc(page.name)}</h1><p>${esc(page.seo.lead ?? t.description)}</p>${about}<h2>How to use ${esc(page.name)}</h2><ol>${steps}</ol><h2>Frequently asked questions</h2>${faq}${moreHtml}${

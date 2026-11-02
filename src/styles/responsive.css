@@ -1,0 +1,112 @@
+/* Breakpoints for everything above. */
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1100px) {
+  .main-nav .nav-link[href] {
+    display: none;
+  }
+  .mega {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .footer-inner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .main-nav {
+    display: none;
+  }
+  .menu-toggle {
+    display: inline-grid;
+  }
+  .features {
+    grid-template-columns: 1fr;
+  }
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100dvh - var(--header-h));
+  }
+  .ws-main {
+    padding: 20px 16px;
+    overflow: visible;
+  }
+  .ws-main.is-fill {
+    height: 70dvh;
+  }
+  .ws-side {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .side-body {
+    overflow: visible;
+    padding: 20px 16px;
+  }
+  .side-foot {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 16px 16px;
+    box-shadow: 0 -6px 20px rgba(24, 23, 43, 0.08);
+  }
+  /* Top corner of the file area, clear of the sticky action button. */
+  .add-files {
+    top: 14px;
+    right: 14px;
+    width: 46px;
+    height: 46px;
+  }
+  .workspace:has(.add-files) .ws-main {
+    padding-top: 72px;
+  }
+  .page-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .file-grid {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .header-inner {
+    padding: 0 16px;
+  }
+  .hero {
+    padding: 48px 16px 24px;
+  }
+  .tool-grid {
+    padding: 0 16px 48px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .tool-card {
+    padding: 16px;
+  }
+  .tool-card p {
+    display: none;
+  }
+  .tool-card h3 {
+    font-size: 15px;
+    margin: 12px 0 0;
+  }
+  .footer-inner {
+    grid-template-columns: 1fr 1fr;
+    padding: 36px 16px 24px;
+  }
+  .btn-xl {
+    padding: 16px 28px;
+    font-size: 18px;
+  }
+  .file-card {
+    width: calc(50% - 6px);
+  }
+  .stage-center {
+    padding: 40px 16px;
+  }
+}

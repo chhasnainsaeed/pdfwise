@@ -76,3 +76,82 @@ export function useObjectUrl(file) {
   }, [file])
   return url
 }
+
+const hasFiles = (e) => Array.from(e.dataTransfer?.types ?? []).includes('Files')
+const isEditable = (el) => Boolean(el?.closest?.('input, textarea, select, [contenteditable="true"]'))
+
+/** Keeps the latest value in a ref, so window listeners can call fresh callbacks without re-binding. */
+function useLatest(value) {
+  const ref = useRef(value)
+  ref.current = value
+  return ref
+}
+
+/**
+ * Page-wide file drag & drop. File drags are always captured so the browser never navigates
+ * away to the dropped file; `enabled` decides whether a drop is accepted.
+ * onActive(true/false) fires when a file drag enters and leaves the window.
+ */
+export function useWindowFileDrop({ enabled = true, onDrop, onActive }) {
+  const latest = useLatest({ enabled, onDrop, onActive })
+  useEffect(() => {
+    let depth = 0
+    const enter = (e) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      if (depth++ === 0 && latest.current.enabled) latest.current.onActive?.(true)
+    }
+    const over = (e) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = latest.current.enabled ? 'copy' : 'none'
+    }
+    const leave = (e) => {
+      if (!hasFiles(e)) return
+      depth = Math.max(0, depth - 1)
+      if (!depth) latest.current.onActive?.(false)
+    }
+    const drop = (e) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      depth = 0
+      latest.current.onActive?.(false)
+      if (latest.current.enabled) latest.current.onDrop(Array.from(e.dataTransfer.files))
+    }
+    window.addEventListener('dragenter', enter)
+    window.addEventListener('dragover', over)
+    window.addEventListener('dragleave', leave)
+    window.addEventListener('drop', drop)
+    return () => {
+      window.removeEventListener('dragenter', enter)
+      window.removeEventListener('dragover', over)
+      window.removeEventListener('dragleave', leave)
+      window.removeEventListener('drop', drop)
+    }
+  }, [latest])
+}
+
+/**
+ * Ctrl+V anywhere on the page (except while typing in a field). Pasted files go to onFiles;
+ * otherwise the clipboard text goes to onText, which returns true when it used it.
+ */
+export function usePaste({ enabled = true, onFiles, onText }) {
+  const latest = useLatest({ enabled, onFiles, onText })
+  useEffect(() => {
+    const paste = (e) => {
+      const { enabled, onFiles, onText } = latest.current
+      if (!enabled || isEditable(e.target)) return
+      const files = Array.from(e.clipboardData?.files ?? [])
+      if (files.length) {
+        if (onFiles) {
+          e.preventDefault()
+          onFiles(files)
+        }
+      } else if (onText?.(e.clipboardData?.getData('text') ?? '')) {
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('paste', paste)
+    return () => window.removeEventListener('paste', paste)
+  }, [latest])
+}
