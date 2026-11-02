@@ -1,4 +1,4 @@
-import { KINDS, formatBytes, matchesKind } from './files.js'
+import { KINDS, pluralize, formatBytes, matchesKind } from './files.js'
 
 const KIND_ORDER = ['pdf', 'image', 'word', 'excel', 'powerpoint']
 
@@ -43,7 +43,7 @@ export async function analyzeFiles(list) {
   const skipped = all.length - files.length
   const total = files.reduce((s, f) => s + f.size, 0)
   const many = files.length > 1
-  const facts = [`${files.length} ${KINDS[kind].label} file${many ? 's' : ''}`, formatBytes(total)]
+  const facts = [pluralize(files.length, `${KINDS[kind].label} file`), formatBytes(total)]
   const picks = []
   const add = (id, reason) => {
     if (!picks.some((p) => p.id === id)) picks.push({ id, reason })
@@ -51,7 +51,7 @@ export async function analyzeFiles(list) {
 
   if (kind === 'pdf') {
     const info = await inspectPdf(files[0])
-    if (info.pages) facts.push(`${many ? 'first has ' : ''}${info.pages} page${info.pages === 1 ? '' : 's'}`)
+    if (info.pages) facts.push(`${many ? 'first has ' : ''}${pluralize(info.pages, 'page')}`)
     if (info.locked) {
       facts.push('password-protected')
       add('unlock-pdf', 'It’s locked — remove the password first')

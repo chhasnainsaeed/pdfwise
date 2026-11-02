@@ -45,10 +45,6 @@ kbd {
 
 /* ---------- 3D hero ---------- */
 
-.home {
-  background: #fff;
-}
-
 .hero3d {
   position: relative;
   isolation: isolate;
@@ -404,60 +400,6 @@ kbd {
   border-color: var(--c);
 }
 
-/* ---------- Tilt cards ---------- */
-
-.tool-grid {
-  perspective: 1400px;
-}
-
-.tool-card {
-  --rx: 0deg;
-  --ry: 0deg;
-  --gx: 50%;
-  --gy: 0%;
-  overflow: hidden;
-  transform-style: preserve-3d;
-  transform: rotateX(var(--rx)) rotateY(var(--ry));
-  transition:
-    transform 0.2s ease-out,
-    box-shadow 0.2s,
-    border-color 0.2s;
-}
-
-.tool-card:hover {
-  transform: rotateX(var(--rx)) rotateY(var(--ry)) translateZ(14px);
-  box-shadow: 0 22px 40px -18px color-mix(in srgb, var(--c) 55%, transparent), var(--shadow);
-}
-
-.tool-card-glare {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(420px circle at var(--gx) var(--gy), color-mix(in srgb, var(--c) 14%, transparent), transparent 45%);
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-}
-
-.tool-card:hover .tool-card-glare {
-  opacity: 1;
-}
-
-.tool-card-depth {
-  display: inline-block;
-  transform: translateZ(28px);
-  transition: transform 0.2s;
-}
-
-.tool-card:hover .tool-card-depth {
-  transform: translateZ(42px) scale(1.06);
-}
-
-.tool-card h3,
-.tool-card p {
-  transform: translateZ(16px);
-}
-
 /* ---------- Size landing links ---------- */
 
 .size-links {
@@ -572,23 +514,7 @@ kbd {
   }
 }
 
-.upload-hint {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
-
-/* ---------- Done stage: the file card arrives in 3D ---------- */
-
-.done-stage {
-  perspective: 1000px;
-}
-
-.done-card {
-  animation: card-flip 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
+/* ---------- Done stage ---------- */
 
 @keyframes card-flip {
   from {

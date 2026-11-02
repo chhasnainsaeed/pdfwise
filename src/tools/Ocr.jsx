@@ -3,7 +3,7 @@ import { useState } from 'react'
 import PageThumb from '../components/PageThumb.jsx'
 import ToolLayout from '../components/ToolLayout.jsx'
 import { Checkbox, Field, Segmented } from '../components/controls.jsx'
-import { PDF_TYPE, baseName, range } from '../lib/files.js'
+import { PDF_TYPE, baseName, pluralize, range } from '../lib/files.js'
 import { useSession } from '../lib/hooks.js'
 import { OCR_LANGUAGES, ocrPdf } from '../lib/ocr.js'
 import { usePdfInfo } from '../lib/pdfjs.js'
@@ -21,7 +21,7 @@ export default function Ocr() {
     run(async ({ progress }) => {
       const base = baseName(item.file.name)
       const r = await ocrPdf(item.file, { lang, skipText, output }, progress)
-      const note = `Recognized ${r.words.toLocaleString()} word${r.words === 1 ? '' : 's'}.`
+      const note = `Recognized ${pluralize(r.words, 'word')}.`
       if (output === 'txt') {
         return { files: [{ name: `${base}.txt`, type: 'text/plain', data: new Blob([r.text], { type: 'text/plain;charset=utf-8' }) }], note }
       }

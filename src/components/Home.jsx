@@ -2,6 +2,7 @@ import { BadgeCheck, Clock, ShieldCheck, Zap } from 'lucide-react'
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { recentTools } from '../lib/handoff.js'
+import { tiltHandlers } from '../lib/hooks.js'
 import { LANDING_GROUPS } from '../landing.js'
 import { ALIASES, HOME_SEO, applyHead } from '../seo.js'
 import { CATEGORIES, TOOLS, TOOLS_BY_ID } from '../tools.js'
@@ -47,25 +48,12 @@ function useIdle() {
   return ready
 }
 
+const cardTilt = tiltHandlers(14)
+
 /** Tool card that tilts toward the pointer, with a light glare. */
 function TiltCard({ tool }) {
-  const move = (e) => {
-    if (e.pointerType === 'touch') return
-    const el = e.currentTarget
-    const r = el.getBoundingClientRect()
-    const x = (e.clientX - r.left) / r.width
-    const y = (e.clientY - r.top) / r.height
-    el.style.setProperty('--ry', `${(x - 0.5) * 14}deg`)
-    el.style.setProperty('--rx', `${-(y - 0.5) * 14}deg`)
-    el.style.setProperty('--gx', `${x * 100}%`)
-    el.style.setProperty('--gy', `${y * 100}%`)
-  }
-  const leave = (e) => {
-    e.currentTarget.style.setProperty('--rx', '0deg')
-    e.currentTarget.style.setProperty('--ry', '0deg')
-  }
   return (
-    <Link to={`/${tool.id}`} className="tool-card" style={{ '--c': tool.color }} onPointerMove={move} onPointerLeave={leave}>
+    <Link to={`/${tool.id}`} className="tool-card" style={{ '--c': tool.color }} {...cardTilt}>
       <span className="tool-card-glare" aria-hidden="true" />
       <span className="tool-card-depth">
         <ToolIcon tool={tool} />

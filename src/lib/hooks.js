@@ -155,3 +155,27 @@ export function usePaste({ enabled = true, onFiles, onText }) {
     return () => window.removeEventListener('paste', paste)
   }, [latest])
 }
+
+/**
+ * Pointer handlers that tilt an element toward the pointer, up to `maxDeg` degrees. They set the CSS
+ * variables --rx/--ry (angles) and --gx/--gy (pointer position, for a glare); the CSS applies them.
+ */
+export function tiltHandlers(maxDeg) {
+  return {
+    onPointerMove(e) {
+      if (e.pointerType === 'touch') return
+      const el = e.currentTarget
+      const r = el.getBoundingClientRect()
+      const x = (e.clientX - r.left) / r.width
+      const y = (e.clientY - r.top) / r.height
+      el.style.setProperty('--ry', `${(x - 0.5) * maxDeg}deg`)
+      el.style.setProperty('--rx', `${-(y - 0.5) * maxDeg}deg`)
+      el.style.setProperty('--gx', `${x * 100}%`)
+      el.style.setProperty('--gy', `${y * 100}%`)
+    },
+    onPointerLeave(e) {
+      e.currentTarget.style.setProperty('--rx', '0deg')
+      e.currentTarget.style.setProperty('--ry', '0deg')
+    },
+  }
+}

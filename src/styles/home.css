@@ -57,34 +57,11 @@
 /* ---------- Home ---------- */
 
 .home {
-  background:
-    radial-gradient(1200px 400px at 50% -120px, color-mix(in srgb, var(--brand) 10%, transparent), transparent 70%),
-    #fff;
-}
-
-.hero {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 72px 24px 32px;
-  text-align: center;
-}
-
-.hero h1 {
-  font-size: clamp(32px, 5.2vw, 54px);
-  line-height: 1.08;
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  background: #fff;
 }
 
 .hl {
   color: var(--brand);
-}
-
-.hero p {
-  max-width: 640px;
-  margin: 20px auto 0;
-  font-size: 18px;
-  color: var(--ink-2);
 }
 
 .filters {
@@ -117,6 +94,7 @@
 }
 
 .tool-grid {
+  perspective: 1400px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 16px;
@@ -126,7 +104,14 @@
 }
 
 .tool-card {
+  /* Tilt toward the pointer: Home.jsx sets --rx/--ry (angles) and --gx/--gy (glare position). */
+  --rx: 0deg;
+  --ry: 0deg;
+  --gx: 50%;
+  --gy: 0%;
+  position: relative;
   display: block;
+  overflow: hidden;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -134,15 +119,17 @@
   text-decoration: none;
   color: var(--ink);
   box-shadow: var(--shadow-sm);
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
   transition:
-    transform 0.15s,
-    box-shadow 0.15s,
-    border-color 0.15s;
+    transform 0.2s ease-out,
+    box-shadow 0.2s,
+    border-color 0.2s;
 }
 
 .tool-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow);
+  transform: rotateX(var(--rx)) rotateY(var(--ry)) translateZ(14px);
+  box-shadow: 0 22px 40px -18px color-mix(in srgb, var(--c) 55%, transparent), var(--shadow);
   border-color: color-mix(in srgb, var(--c) 45%, var(--line));
 }
 
@@ -150,12 +137,38 @@
   margin: 16px 0 6px;
   font-size: 18px;
   font-weight: 700;
+  transform: translateZ(16px);
 }
 
 .tool-card p {
   margin: 0;
   color: var(--ink-2);
   font-size: 14px;
+  transform: translateZ(16px);
+}
+
+.tool-card-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(420px circle at var(--gx) var(--gy), color-mix(in srgb, var(--c) 14%, transparent), transparent 45%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.tool-card:hover .tool-card-glare {
+  opacity: 1;
+}
+
+.tool-card-depth {
+  display: inline-block;
+  transform: translateZ(28px);
+  transition: transform 0.2s;
+}
+
+.tool-card:hover .tool-card-depth {
+  transform: translateZ(42px) scale(1.06);
 }
 
 .features {

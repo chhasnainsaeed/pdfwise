@@ -2,11 +2,11 @@ import { ArrowRight, ClipboardPaste, Command, Sparkles, Upload, X } from 'lucide
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { analyzeFiles, findUrl } from '../lib/analyze.js'
-import { uid } from '../lib/files.js'
+import { pluralize, uid } from '../lib/files.js'
 import { EXCITE, openPalette } from '../lib/events.js'
 import { bucket, track } from '../lib/analytics.js'
 import { handOff } from '../lib/handoff.js'
-import { usePaste, useWindowFileDrop } from '../lib/hooks.js'
+import { tiltHandlers, usePaste, useWindowFileDrop } from '../lib/hooks.js'
 import { PWA_EVENT, takeIncoming } from '../lib/pwa.js'
 import { TOOLS_BY_ID } from '../tools.js'
 import ToolIcon from './ToolIcon.jsx'
@@ -18,10 +18,11 @@ const excite = (on) => window.dispatchEvent(new CustomEvent(EXCITE, { detail: on
  * Drop (or paste) any file on the home page: PDFwise looks at it and suggests the tools
  * that fit — a scan gets OCR, a big file gets Compress, a locked one gets Unlock.
  */
+const dropTilt = tiltHandlers(8)
+
 export default function SmartDrop() {
   const navigate = useNavigate()
   const input = useRef(null)
-  const card = useRef(null)
   const [state, setState] = useState({ phase: 'idle' })
   const [over, setOver] = useState(false)
 
@@ -88,33 +89,15 @@ export default function SmartDrop() {
     navigate(`/${id}`)
   }
 
-  // Gentle 3D tilt toward the pointer.
-  const tilt = (e) => {
-    const el = card.current
-    if (!el || e.pointerType === 'touch') return
-    const r = el.getBoundingClientRect()
-    el.style.setProperty('--ry', `${((e.clientX - r.left) / r.width - 0.5) * 8}deg`)
-    el.style.setProperty('--rx', `${-((e.clientY - r.top) / r.height - 0.5) * 8}deg`)
-  }
-  const untilt = () => {
-    card.current?.style.setProperty('--rx', '0deg')
-    card.current?.style.setProperty('--ry', '0deg')
-  }
-
   return (
-    <div
-      ref={card}
-      className={`smart-drop ${over ? 'is-over' : ''} is-${state.phase}`}
-      onPointerMove={tilt}
-      onPointerLeave={untilt}
-    >
+    <div className={`smart-drop ${over ? 'is-over' : ''} is-${state.phase}`} {...dropTilt}>
       {state.phase === 'done' ? (
         <div className="sd-result">
           <div className="sd-head">
             <Sparkles size={18} />
             <span>
               {state.facts.join(' · ')}
-              {state.skipped > 0 && ` · ${state.skipped} other file${state.skipped > 1 ? 's' : ''} skipped`}
+              {state.skipped > 0 && ` · ${pluralize(state.skipped, 'other file')} skipped`}
             </span>
             <button type="button" className="icon-btn sd-close" aria-label="Clear" onClick={() => setState({ phase: 'idle' })}>
               <X size={18} />

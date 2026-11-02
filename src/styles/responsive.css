@@ -77,9 +77,6 @@
   .header-inner {
     padding: 0 16px;
   }
-  .hero {
-    padding: 48px 16px 24px;
-  }
   .tool-grid {
     padding: 0 16px 48px;
     grid-template-columns: 1fr 1fr;

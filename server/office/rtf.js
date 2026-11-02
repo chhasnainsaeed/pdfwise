@@ -38,7 +38,7 @@ export function rtfDocument(buffer) {
   let paragraphs = []
   let cell = []
   let cells = []
-  let blocks = []
+  const blocks = []
   let pict = null
   let fontName = ''
   let color = {}

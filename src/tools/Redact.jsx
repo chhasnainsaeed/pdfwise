@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import PageThumb from '../components/PageThumb.jsx'
 import ToolLayout from '../components/ToolLayout.jsx'
 import { Checkbox, Field, Summary } from '../components/controls.jsx'
-import { PDF_TYPE, baseName, range, uid } from '../lib/files.js'
+import { PDF_TYPE, baseName, pluralize, range, uid } from '../lib/files.js'
 import { useElementSize, useSession } from '../lib/hooks.js'
 import { usePdfInfo } from '../lib/pdfjs.js'
 import { applyRedactions, findText } from '../lib/redact.js'
@@ -122,7 +122,7 @@ export default function Redact() {
   const save = () =>
     run(async ({ progress }) => ({
       files: [{ name: `${baseName(item.file.name)}-redacted.pdf`, type: PDF_TYPE, data: await applyRedactions(item.file, boxes, { keepMetadata }, progress) }],
-      note: `${boxes.length} area${boxes.length === 1 ? '' : 's'} redacted on ${pagesAffected} page${pagesAffected === 1 ? '' : 's'}. Those pages are now images; run OCR PDF if you need their remaining text to be searchable.`,
+      note: `${pluralize(boxes.length, 'area')} redacted on ${pluralize(pagesAffected, 'page')}. Those pages are now images; run OCR PDF if you need their remaining text to be searchable.`,
     }))
 
   return (

@@ -1,3 +1,4 @@
+/* global window, document -- functions passed to page.evaluate() run inside the headless browser page */
 // Prints HTML or web pages to PDF with a Chromium browser that's already installed
 // (Microsoft Edge ships with Windows). One headless browser is shared and closed when idle.
 

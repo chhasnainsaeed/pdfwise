@@ -10,7 +10,10 @@
     "server": "node server/index.js",
     "start": "npm run build && node server/index.js",
     "test": "node --test",
-    "new-tool": "node scripts/new-tool.mjs"
+    "new-tool": "node scripts/new-tool.mjs",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "check": "eslint . && prettier --check . && node --test"
   },
   "dependencies": {
     "@neslinesli93/qpdf-wasm": "^0.3.0",
@@ -34,7 +37,13 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2",
     "vite": "^5.4.11"
   }
 }

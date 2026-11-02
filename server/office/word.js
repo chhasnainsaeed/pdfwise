@@ -1,3 +1,4 @@
+/* global window, document -- functions passed to page.evaluate() run inside the headless browser page */
 import JSZip from 'jszip'
 import mammoth from 'mammoth'
 import WordExtractor from 'word-extractor'
@@ -106,7 +107,7 @@ function textDocument(buffer) {
     html: page(
       `@page{size:A4;margin:20mm}
 pre{margin:0;white-space:pre-wrap;word-wrap:break-word;font:10pt/1.45 Consolas,"Cascadia Mono","Courier New",monospace}`,
-      `<pre>${esc(buffer.toString('utf8').replace(/^﻿/, ''))}</pre>`,
+      `<pre>${esc(buffer.toString('utf8').replace(/^\uFEFF/, ''))}</pre>`,
     ),
   }
 }

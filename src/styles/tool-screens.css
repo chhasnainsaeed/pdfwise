@@ -492,10 +492,6 @@
   color: var(--c);
 }
 
-.tool-card {
-  position: relative;
-}
-
 .server-badge {
   position: absolute;
   top: 18px;

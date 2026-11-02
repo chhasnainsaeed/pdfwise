@@ -4,40 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { OPEN_PALETTE } from '../lib/events.js'
 import { track } from '../lib/analytics.js'
 import { recentTools } from '../lib/handoff.js'
-import { ALIASES, TOOL_SEO } from '../seo.js'
-import { TOOLS, TOOLS_BY_ID } from '../tools.js'
+import { searchTools } from '../lib/search.js'
 import ToolIcon from './ToolIcon.jsx'
-
-const ENTRIES = [
-  ...TOOLS.map((t) => ({
-    path: `/${t.id}`,
-    name: t.name,
-    tool: t,
-    text: t.description,
-    hay: [t.name, ...TOOL_SEO[t.id].keywords].join(' ').toLowerCase(),
-  })),
-  ...Object.entries(ALIASES).map(([id, a]) => ({
-    path: `/${id}`,
-    name: a.name,
-    tool: TOOLS_BY_ID[a.tool],
-    text: a.seo.lead,
-    hay: [a.name, ...(a.keywords ?? [])].join(' ').toLowerCase(),
-  })),
-]
-
-function score(entry, words) {
-  const name = entry.name.toLowerCase()
-  let total = 0
-  for (const w of words) {
-    if (name.startsWith(w)) total += 4
-    else if (name.split(/\s+/).some((part) => part.startsWith(w))) total += 3
-    else if (entry.hay.includes(w)) total += 2
-    else if (entry.text.toLowerCase().includes(w)) total += 1
-    else return 0
-  }
-  // Prefer the real tool over its size presets when both match equally.
-  return total + (entry.path.includes('-to-') && entry.tool.id === 'compress-pdf' ? -0.5 : 0)
-}
 
 export default function CommandPalette() {
   const [open, setOpen] = useState(false)
@@ -74,18 +42,7 @@ export default function CommandPalette() {
     }
   }, [open])
 
-  const results = useMemo(() => {
-    const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean)
-    if (!words.length) {
-      const recent = recentTools().map((id) => ENTRIES.find((e) => e.path === `/${id}`)).filter(Boolean)
-      const rest = ENTRIES.filter((e) => TOOLS_BY_ID[e.path.slice(1)] && !recent.includes(e))
-      return [...recent.map((e) => ({ ...e, recent: true })), ...rest]
-    }
-    return ENTRIES.map((e) => ({ e, s: score(e, words) }))
-      .filter((r) => r.s > 0)
-      .sort((a, b) => b.s - a.s)
-      .map((r) => r.e)
-  }, [query])
+  const results = useMemo(() => searchTools(query, recentTools()), [query])
 
   useEffect(() => setActive(0), [query])
   useEffect(() => {

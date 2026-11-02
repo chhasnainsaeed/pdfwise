@@ -38,6 +38,11 @@
 }
 
 .upload-hint {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   margin: 14px 0 0;
   color: var(--ink-3);
 }
@@ -126,7 +131,13 @@
   margin-top: 8px;
 }
 
+.done-stage {
+  perspective: 1000px;
+}
+
+/* The file card flips in (keyframes card-flip in immersive.css). */
 .done-card {
+  animation: card-flip 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   display: flex;
   flex-direction: column;
   align-items: center;

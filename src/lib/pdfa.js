@@ -1,5 +1,5 @@
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFNumber, PDFRawStream, PDFString, decodePDFRawStream } from 'pdf-lib'
-import { UserError } from './files.js'
+import { UserError, pluralize } from './files.js'
 import { flattenPage, rebuild } from './flatten.js'
 import { srgbProfile } from './icc.js'
 
@@ -106,7 +106,7 @@ const xmlEscape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 const isoDate = (d) => d.toISOString().replace(/\.\d{3}Z$/, 'Z')
 
 function xmpPacket({ title, author, created, modified }) {
-  return `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+  return `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/">
  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
   <rdf:Description rdf:about=""
@@ -155,9 +155,9 @@ export async function convertToPdfA(file, { flatten = true } = {}, progress) {
       await flattenPage(file, src, problems[i].page, { dpi: 200 })
       progress?.(i + 1, problems.length + 1)
     }
-    report.push(`${problems.length} page${problems.length === 1 ? '' : 's'} with ${[fontPages && 'non-embedded fonts', cmykPages && 'CMYK color'].filter(Boolean).join(' or ')} converted to images.`)
+    report.push(`${pluralize(problems.length, 'page')} with ${[fontPages && 'non-embedded fonts', cmykPages && 'CMYK color'].filter(Boolean).join(' or ')} converted to images.`)
   } else if (problems.length) {
-    report.push(`Warning: ${problems.length} page${problems.length === 1 ? '' : 's'} still use ${[fontPages && 'non-embedded fonts', cmykPages && 'CMYK color'].filter(Boolean).join(' and ')}, so the file won’t fully comply.`)
+    report.push(`Warning: ${pluralize(problems.length, 'page')} still use ${[fontPages && 'non-embedded fonts', cmykPages && 'CMYK color'].filter(Boolean).join(' and ')}, so the file won’t fully comply.`)
   } else {
     report.push('All fonts are embedded and colors are RGB/gray.')
   }
@@ -165,7 +165,7 @@ export async function convertToPdfA(file, { flatten = true } = {}, progress) {
   // A fresh document leaves behind JavaScript, attachments, open actions and unused objects.
   const doc = await rebuild(src)
   const removedAnnots = cleanAnnotations(doc)
-  if (removedAnnots) report.push(`${removedAnnots} annotation${removedAnnots === 1 ? '' : 's'} without an appearance removed.`)
+  if (removedAnnots) report.push(`${pluralize(removedAnnots, 'annotation')} without an appearance removed.`)
   report.push('Scripts, attachments and unsafe actions removed.')
 
   const ctx = doc.context

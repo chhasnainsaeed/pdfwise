@@ -32,6 +32,9 @@ export async function mapLimit(items, limit, fn) {
   return out
 }
 
+/** "1 page", "3 pages", "12,345 words". */
+export const pluralize = (n, word) => `${n.toLocaleString('en-US')} ${word}${n === 1 ? '' : 's'}`
+
 export const range = (n) => Array.from({ length: n }, (_, i) => i)
 
 export const baseName = (name) => name.replace(/\.[^.]+$/, '') || 'document'
