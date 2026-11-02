@@ -77,6 +77,7 @@ conversion. The server listens on 127.0.0.1 by default; set `BASIC_AUTH` before 
 | `TRUST_PROXY` | off | Express `trust proxy` value when running behind a reverse proxy |
 | `CONVERTER` | `auto` | `libreoffice` or `builtin` to force one |
 | `SOFFICE_PATH`, `CHROME_PATH` | auto-detected | |
+| `CHROME_NO_SANDBOX` | off | `1` launches Chromium with `--no-sandbox`, which most containers need (the [Dockerfile](Dockerfile) sets it). Leave it off elsewhere: the sandbox is what contains a hostile web page |
 | `MAX_UPLOAD_MB` | `100` | |
 | `CONVERT_TIMEOUT_S` | `120` | |
 | `CONVERT_CONCURRENCY` | `2` | parallel LibreOffice instances |
@@ -85,9 +86,98 @@ conversion. The server listens on 127.0.0.1 by default; set `BASIC_AUTH` before 
 
 | Endpoint | |
 | --- | --- |
+| `GET /healthz` | `ok` — liveness check for Docker and load balancers; answers even with `BASIC_AUTH` on |
 | `GET /api/health` | `{ ok, engine, formats, notes, libreoffice, browser, maxUploadMb }` |
 | `POST /api/convert/pdf` | Raw file body + `X-File-Name` header (URL-encoded) → `application/pdf`, or `{ error }` with 400/413/415/422/429/503/504 |
 | `POST /api/convert/url` | JSON `{ url, format: "A4"\|"Letter", landscape, margin: "none"\|"small"\|"normal", background, screen }` → `application/pdf` |
+
+## Deploy
+
+### VPS with Docker (recommended for production)
+
+[docker-compose.yml](docker-compose.yml) runs two containers:
+
+- **pdfwise:** the built app and conversion server, from the [Dockerfile](Dockerfile). It uses Node 22
+  with Chromium and fonts (Latin, CJK and more), plus optional LibreOffice. It runs as a non-root
+  user, with a health check, a memory limit, enough shared memory for Chromium, an init process that
+  cleans up leftover browser processes, and rotated logs. It isn't published on the host.
+- **caddy:** the public entry point ([deploy/Caddyfile](deploy/Caddyfile)). It gets and renews
+  HTTPS certificates automatically, redirects HTTP → HTTPS and `www` → your domain, compresses
+  responses, and adds security headers (HSTS, nosniff, frame and referrer policies).
+
+The server also sets cache headers itself: hashed `/assets` files are cached for a year, while pages,
+`sw.js` and the manifest are always re-checked, so updates reach installed apps.
+
+**First deploy** (Ubuntu 22.04/24.04, 2 vCPU / 4 GB RAM or more):
+
+```bash
+# 1. DNS: point your domain's A record (and www) at the server's IP.
+# 2. On the server:
+curl -fsSL https://get.docker.com | sh
+sudo ufw allow OpenSSH && sudo ufw allow 80 && sudo ufw allow 443 && sudo ufw enable
+git clone https://github.com/chhasnainsaeed/pdfwise.git && cd pdfwise
+cp .env.example .env && nano .env      # set DOMAIN, optional analytics / Search Console
+docker compose up -d --build
+```
+
+Then open `https://your-domain`. The first visit can take a few seconds while Caddy gets the certificate.
+
+**Updating:** `git pull && docker compose up -d --build`. The build re-creates the pre-rendered
+pages, sitemap and service worker. Visitors who installed the app see "a new version is ready".
+
+**Useful commands:** `docker compose logs -f pdfwise`, `docker compose ps` (shows health),
+`docker compose restart pdfwise`.
+
+**Settings** (in `.env`, see [.env.example](.env.example)):
+
+- `DOMAIN` is required. Build-time values (`SITE_URL`, analytics, verification tags) are passed to
+  the build automatically.
+- `INCLUDE_LIBREOFFICE=true` adds LibreOffice: best Office fidelity and binary `.ppt`, about 600 MB
+  more. Raise `PDFWISE_MEMORY` to `3g` with it.
+- `BASIC_AUTH`: **leave it empty for a public site.** It puts the whole site, not just the API, behind
+  a login, which suits a private team server. Public servers are protected by the per-IP rate limit
+  (`RATE_LIMIT_PER_MIN`, default 30 conversions a minute), the upload limit, and the HTML → PDF
+  egress proxy that refuses private and local addresses.
+- `TRUST_PROXY` must match how traffic arrives, or every visitor shares one rate-limit bucket:
+  - **Caddy only:** `TRUST_PROXY=1` (the default).
+  - **Cloudflare → Caddy** (orange-cloud proxy): `TRUST_PROXY=2`, and set `TRUSTED_PROXIES` to
+    Cloudflare's IP ranges (listed in `.env.example`; check https://www.cloudflare.com/ips/). Use SSL
+    mode "Full (strict)" in Cloudflare.
+
+**Sizing:** about 300 MB idle. Each HTML or Office conversion briefly adds a few hundred MB for
+Chromium. `BROWSER_CONCURRENCY` (3) and `CONVERT_CONCURRENCY` (2) cap parallel work. Every tool that
+runs in the browser costs the server nothing but serving files.
+
+### Docker without Compose, or on Render / Railway / Fly.io
+
+```bash
+docker build --build-arg SITE_URL=https://your-domain.com -t pdfwise .
+docker run -d --name pdfwise --restart unless-stopped --init --shm-size=512m \
+  -p 127.0.0.1:3001:3001 -e TRUST_PROXY=1 pdfwise
+```
+
+Put a TLS proxy such as Caddy or nginx in front. With nginx, raise `client_max_body_size` to match
+`MAX_UPLOAD_MB`. Build arguments: `SITE_URL`, `GOOGLE_SITE_VERIFICATION`, `BING_SITE_VERIFICATION`,
+`VITE_PLAUSIBLE_DOMAIN`, `VITE_UMAMI_WEBSITE_ID`, `INCLUDE_LIBREOFFICE`. The container needs at least
+1 GB of RAM (2 GB with LibreOffice).
+
+**Render, Railway and Fly.io** build the Dockerfile straight from the repo and provide HTTPS.
+Set `TRUST_PROXY=1`, pick an instance with 1 GB+ RAM (free 512 MB tiers are too small), set
+`SITE_URL` (and the other build arguments) as build variables, and use `/healthz` as the health
+check path. It answers even with `BASIC_AUTH` on. These platforms inject `PORT` themselves.
+
+### Frontend only (Vercel, Netlify, Cloudflare Pages)
+
+Without a server, every tool except the Office and HTML ones works, because the rest run in the
+visitor's browser. Word / Excel / PowerPoint to PDF and HTML to PDF will say the conversion server
+isn't available. Connect the repo with build command `npm run build` and output directory `dist`, and
+set `SITE_URL` (plus any analytics or verification variables) as build environment variables.
+
+- Pages are pre-rendered as `dist/<page>.html`. Netlify and Cloudflare Pages serve them at `/<page>`
+  automatically. [vercel.json](vercel.json) turns on `cleanUrls` for Vercel.
+- Unknown paths get `dist/404.html` with a real 404 status on all three.
+- Cache headers for `sw.js`, the manifest and `/assets` come from [public/_headers](public/_headers)
+  (Netlify, Cloudflare Pages) and [vercel.json](vercel.json).
 
 ## Tools
 

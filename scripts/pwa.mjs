@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const dist = path.join(root, 'dist')
-const SKIP = new Set(['sw.js', 'sitemap.xml', 'robots.txt', 'llms.txt'])
+const SKIP = new Set(['sw.js', 'sitemap.xml', 'robots.txt', 'llms.txt', '404.html', '_headers'])
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {

@@ -133,6 +133,15 @@ for (const page of pages) {
   writeFileSync(path.join(dist, file), html)
 }
 
+// 404.html: served with a 404 status for unknown paths (Node server, Netlify, Vercel, Cloudflare
+// Pages). Loads the app, which shows its "not found" page; noindex keeps it out of search results.
+writeFileSync(
+  path.join(dist, '404.html'),
+  template
+    .replace(/<title>[\s\S]*?<\/title>/, `<title>Page not found — ${esc(BRAND)}</title>\n    <meta name="robots" content="noindex" />`)
+    .replace('<div id="root"></div>', `<div id="root"><main class="seo-static"><h1>Page not found</h1><p><a href="/">See all ${esc(BRAND)} tools</a></p></main></div>`),
+)
+
 const robots = ['User-agent: *', 'Allow: /', 'Disallow: /api/']
 if (SITE) {
   const today = new Date().toISOString().slice(0, 10)

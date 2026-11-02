@@ -1,0 +1,39 @@
+# Caddy in front of PDFwise: HTTPS certificates are fetched and renewed automatically.
+# Settings come from the environment (docker-compose.yml passes them from .env).
+{
+	servers {
+		# Proxies whose X-Forwarded-For Caddy trusts. Default: private networks only.
+		# Behind Cloudflare, set TRUSTED_PROXIES to Cloudflare's ranges (see .env.example).
+		trusted_proxies static {$TRUSTED_PROXIES:private_ranges}
+	}
+}
+
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Matches the app's MAX_UPLOAD_MB limit.
+	request_body {
+		max_size {$MAX_UPLOAD_MB:100}MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	reverse_proxy pdfwise:3001 {
+		# Conversions can take a while on big files.
+		transport http {
+			read_timeout 5m
+			write_timeout 5m
+		}
+	}
+}

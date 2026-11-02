@@ -7,7 +7,7 @@
 //
 // Environment: PORT, HOST, CONVERTER (auto | libreoffice | builtin), SOFFICE_PATH, CHROME_PATH,
 // MAX_UPLOAD_MB, CONVERT_TIMEOUT_S, CONVERT_CONCURRENCY, BROWSER_CONCURRENCY, ALLOW_PRIVATE_URLS,
-// BASIC_AUTH (user:password), RATE_LIMIT_PER_MIN, TRUST_PROXY
+// BASIC_AUTH (user:password), RATE_LIMIT_PER_MIN, TRUST_PROXY, CHROME_NO_SANDBOX
 
 import express from 'express'
 import { createHash, timingSafeEqual } from 'node:crypto'
@@ -65,6 +65,9 @@ function officeEngine() {
 const app = express()
 app.disable('x-powered-by')
 if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY)
+// Liveness check for Docker / load balancers. Before auth so it works with BASIC_AUTH on; says nothing
+// about the server beyond "up".
+app.get('/healthz', (req, res) => res.type('text/plain').send('ok'))
 if (BASIC_AUTH) app.use(requireAuth)
 app.use('/api/convert', rateLimit)
 
@@ -149,10 +152,22 @@ app.use((err, req, res, next) => {
 
 const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 if (existsSync(dist)) {
-  // Pre-rendered pages are dist/<page>.html, served at /<page>. Anything else is a 404 that
-  // still loads the app (which shows its own "not found" page).
-  app.use(express.static(dist, { extensions: ['html'] }))
-  app.get('*', (req, res, next) => (req.path.startsWith('/api/') ? next() : res.status(404).sendFile(path.join(dist, 'index.html'))))
+  // Pre-rendered pages are dist/<page>.html, served at /<page>. Anything else gets 404.html with a
+  // 404 status (it still loads the app, which shows its own "not found" page).
+  app.use(
+    express.static(dist, {
+      extensions: ['html'],
+      setHeaders(res, file) {
+        const name = path.basename(file)
+        // Hashed build files never change; the service worker and manifest must be re-checked so
+        // updates reach installed apps.
+        if (file.includes(`${path.sep}assets${path.sep}`)) res.set('Cache-Control', 'public, max-age=31536000, immutable')
+        else if (name === 'sw.js' || name === 'manifest.webmanifest' || name.endsWith('.html')) res.set('Cache-Control', 'no-cache')
+      },
+    }),
+  )
+  const notFound = existsSync(path.join(dist, '404.html')) ? path.join(dist, '404.html') : path.join(dist, 'index.html')
+  app.get('*', (req, res, next) => (req.path.startsWith('/api/') ? next() : res.status(404).set('Cache-Control', 'no-cache').sendFile(notFound)))
 }
 
 app.listen(PORT, HOST, () => {
