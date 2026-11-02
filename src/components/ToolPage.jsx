@@ -79,7 +79,7 @@ function ToolSession({ tool, alias }) {
     setStage('processing')
     const started = performance.now()
     try {
-      const out = await task({ progress: (done, total) => setProgress({ done, total }) })
+      const out = await task({ progress: (done, total, label) => setProgress({ done, total, label }) })
       const packed = await packResult(out)
       const elapsed = performance.now() - started
       if (elapsed < 600) await sleep(600 - elapsed)
@@ -244,14 +244,17 @@ function ProcessingOverlay({ tool, progress }) {
       <div className="processing-card">
         <span className="spinner spinner-lg" />
         <h2>{tool.processing}</h2>
+        {progress?.label && <p className="processing-step">{progress.label}</p>}
         {pct !== null ? (
           <>
             <div className="progress">
               <div className="progress-bar" style={{ width: `${pct}%` }} />
             </div>
-            <p className="muted">
-              {progress.done} of {progress.total}
-            </p>
+            {!progress.label && (
+              <p className="muted">
+                {progress.done} of {progress.total}
+              </p>
+            )}
           </>
         ) : (
           <p className="muted">This happens on your device, so it won’t take long.</p>

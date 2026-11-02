@@ -61,6 +61,7 @@ function TiltCard({ tool }) {
       <span className="tool-card-depth">
         <ToolIcon tool={tool} />
       </span>
+      {tool.badge && <span className="new-badge">{tool.badge}</span>}
       {tool.server && (
         <span className="server-badge" title="Converted on your PDFwise server">
           Server

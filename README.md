@@ -125,6 +125,22 @@ output straight into another tool.
 All placement math respects each page's `/Rotate` and crop box, so numbers, watermarks,
 signatures and crops land where the reader sees them, even on rotated pages.
 
+## Workflows
+
+**PDF Workflows** (`/pdf-workflows`) chains tools into one click and runs them on a whole batch,
+in the browser. Steps: Images to PDF, Repair, Unlock, Merge, Keep or remove pages, Rotate, OCR,
+Watermark, Page numbers, Compress (by level or to a target size), Password protect and Pages to JPG.
+Merge and Images to PDF combine the batch into one file. Every other step runs on each file
+separately, and several results are zipped. Protect and Pages to JPG must come last, and the
+builder explains anything that can't run.
+
+Six ready-made recipes cover common jobs: Email-ready PDF, Application pack, Photos to small PDF,
+Searchable scans, Confidential share and Bulk compress. Workflows can be saved in the browser or
+shared as a link (`/pdf-workflows?w=…`). Shared links are checked against the known steps and
+options, and passwords are never saved or put in a link. The engine is
+[src/lib/workflow.js](src/lib/workflow.js). Each step reuses the same library code as the matching
+single tool.
+
 ## Getting around faster
 
 - **Smart drop**: drop, choose or paste any file on the home page. PDFwise inspects it on the device
@@ -157,6 +173,7 @@ src/
     compress.js       image re-encoding for Compress PDF, and compress-to-target-size search
     analyze.js        inspects dropped files and ranks the tools that fit
     handoff.js        passes files between pages; remembers recently used tools
+    workflow.js       workflow steps, recipes, validation, runner, save/share encoding
     convert.js        images → PDF and PDF → images
     qpdf.js           qpdf WebAssembly wrapper: protect, unlock, repair
     ocr.js            Tesseract OCR and the invisible (any-script) text layer

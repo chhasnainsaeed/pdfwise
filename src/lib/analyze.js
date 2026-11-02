@@ -61,6 +61,7 @@ export async function analyzeFiles(list) {
       add('repair-pdf', 'It didn’t open cleanly — try repairing it')
     }
     if (many) add('merge-pdf', `Join these ${files.length} PDFs into one`)
+    if (many) add('pdf-workflows', 'Merge, number, compress and more — in one click')
     if (info.scanned && !info.locked) {
       facts.push('scanned (no text layer)')
       add('ocr-pdf', 'It’s a scan — make the text searchable and copyable')
@@ -80,6 +81,7 @@ export async function analyzeFiles(list) {
     add('add-watermark', 'Stamp a watermark')
   } else if (kind === 'image') {
     add('images-to-pdf', many ? `Put these ${files.length} images into one PDF` : 'Turn this image into a PDF')
+    add('pdf-workflows', 'Make one compact PDF from them in a single step')
   } else {
     const id = { word: 'word-to-pdf', excel: 'excel-to-pdf', powerpoint: 'powerpoint-to-pdf' }[kind]
     add(id, `Convert ${many ? 'them' : 'it'} to PDF`)

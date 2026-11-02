@@ -5,6 +5,7 @@ const pagePicker = (mode) =>
   lazy(() => import('./PagePicker.jsx').then((m) => ({ default: () => <m.default mode={mode} /> })))
 
 export const TOOL_COMPONENTS = {
+  'pdf-workflows': lazy(() => import('./Workflow.jsx')),
   'merge-pdf': lazy(() => import('./Merge.jsx')),
   'split-pdf': lazy(() => import('./Split.jsx')),
   'remove-pages': pagePicker('remove'),

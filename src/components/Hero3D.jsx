@@ -25,7 +25,7 @@ import { TOOLS } from '../tools.js'
 const PAGE_W = 1.5
 const PAGE_H = 2.0
 const FOG = '#f6f5ff'
-const KIND_TAG = { pdf: 'PDF', image: 'JPG', word: 'DOC', excel: 'XLS', powerpoint: 'PPT', url: 'URL' }
+const KIND_TAG = { any: 'AUTO', pdf: 'PDF', image: 'JPG', word: 'DOC', excel: 'XLS', powerpoint: 'PPT', url: 'URL' }
 
 function roundRect(g, x, y, w, h, r) {
   g.beginPath()

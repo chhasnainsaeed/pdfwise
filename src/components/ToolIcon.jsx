@@ -23,10 +23,12 @@ import {
   ScanText,
   Scissors,
   Stamp,
+  Workflow,
   Wrench,
 } from 'lucide-react'
 
 const ICONS = {
+  'pdf-workflows': Workflow,
   'merge-pdf': Merge,
   'split-pdf': Scissors,
   'remove-pages': FileMinus,

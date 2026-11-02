@@ -13,6 +13,7 @@ export const HOME_SEO = {
 
 // Extra search phrases per tool (also used by the command palette search).
 const KEYWORDS = {
+  'pdf-workflows': ['batch pdf', 'bulk compress pdf', 'pdf automation', 'process multiple pdfs', 'recipe', 'workflow'],
   'merge-pdf': ['combine pdf', 'join pdf', 'merge pdf files'],
   'split-pdf': ['separate pdf', 'split pdf pages', 'cut pdf'],
   'remove-pages': ['delete pdf pages', 'remove page from pdf'],
@@ -42,6 +43,7 @@ const KEYWORDS = {
 
 // One tool-specific question each, on top of the shared ones.
 const EXTRA_FAQ = {
+  'pdf-workflows': ['What can a workflow do?', 'Chain up to 20 steps — merge, keep or remove pages, rotate, OCR, watermark, page numbers, compress (even to an exact size), password-protect or turn pages into JPGs — and run them on many files at once. Save workflows in your browser or share them as a link; passwords are never saved or shared.'],
   'merge-pdf': ['Can I change the order before merging?', 'Yes. Drag the file cards, or use the arrows, into the order you want. The merged PDF follows that order exactly.'],
   'split-pdf': ['Can I split a PDF into one file per page?', 'Yes. Pick “Every page” and each page becomes its own PDF, downloaded together as a ZIP.'],
   'compress-pdf': ['Can I compress a PDF to an exact size like 200 KB or 1 MB?', 'Yes. Choose “Target size”, pick a size such as 100 KB, 200 KB, 500 KB or 1 MB, and PDFwise finds the best quality that fits under it.'],
@@ -63,9 +65,11 @@ function toolSeo(t) {
   let title = `${t.name} — ${suffix} | ${BRAND}`
   if (title.length > 62) title = `${t.name} Online Free | ${BRAND}`
   const description = `${t.description} ${local ? 'Runs in your browser — files never leave your device.' : 'Files are deleted right after conversion.'} Free, no sign-up.`
-  const noun = t.kind === 'url' ? 'web page' : t.kind === 'image' ? 'images' : t.kind === 'pdf' ? `PDF ${plural(t)}` : `${t.kind === 'word' ? 'Word' : t.kind === 'excel' ? 'Excel' : 'PowerPoint'} ${plural(t)}`
+  const noun = t.kind === 'url' ? 'web page' : t.kind === 'any' ? 'PDFs or images' : t.kind === 'image' ? 'images' : t.kind === 'pdf' ? `PDF ${plural(t)}` : `${t.kind === 'word' ? 'Word' : t.kind === 'excel' ? 'Excel' : 'PowerPoint'} ${plural(t)}`
   const steps =
-    t.kind === 'url'
+    t.id === 'pdf-workflows'
+      ? ['Drop all your PDFs or images at once.', 'Pick a ready-made recipe or build your own chain of steps.', `Click “${t.action}” — every step runs in order and you download the result.`]
+      : t.kind === 'url'
       ? ['Paste the address of the web page.', 'Choose page size, orientation and margins.', `Click “${t.action}” and download your PDF.`]
       : [`Select or drop your ${noun} — or paste them with Ctrl+V.`, 'Adjust the options in the side panel.', `Click “${t.action}” and download the result.`]
   const faq = [

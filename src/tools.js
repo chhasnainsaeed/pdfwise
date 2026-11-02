@@ -11,6 +11,20 @@ export const CATEGORIES = [
 
 export const TOOLS = [
   {
+    id: 'pdf-workflows',
+    name: 'PDF Workflows',
+    category: 'organize',
+    color: '#7048e8',
+    kind: 'any',
+    multiple: true,
+    badge: 'New',
+    description: 'Chain tools into one click — merge, number, compress, protect — and run them on a whole batch.',
+    action: 'Run workflow',
+    processing: 'Running your workflow…',
+    done: 'Your workflow is finished',
+    related: ['merge-pdf', 'compress-pdf', 'protect-pdf'],
+  },
+  {
     id: 'merge-pdf',
     name: 'Merge PDF',
     category: 'organize',
