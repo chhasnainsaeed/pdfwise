@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { LANDING_GROUPS } from '../src/landing.js'
 import { ALIASES, HOME_SEO, allPages, moreLinks } from '../src/seo.js'
 import { BRAND, CATEGORIES, TOOLS } from '../src/tools.js'
+import { HSTS, analyticsOriginsFromEnv, securityHeaders } from '../server/security-headers.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const dist = path.join(root, 'dist')
@@ -165,6 +166,29 @@ writeFileSync(
       '<div id="root"></div>',
       `<div id="root"><main class="seo-static"><h1>Page not found</h1><p><a href="/">See all ${esc(BRAND)} tools</a></p></main></div>`,
     ),
+)
+
+// Security headers for every host: dist/security-headers.json is read by the Node server, and
+// dist/_headers is the format Netlify and Cloudflare Pages use (vercel.json has its own copy).
+const headers = securityHeaders(analyticsOriginsFromEnv())
+writeFileSync(path.join(dist, 'security-headers.json'), `${JSON.stringify(headers, null, 2)}\n`)
+const headerLines = (obj) => Object.entries(obj).map(([k, v]) => `  ${k}: ${v}`)
+writeFileSync(
+  path.join(dist, '_headers'),
+  [
+    '/*',
+    ...headerLines({ ...headers, 'Strict-Transport-Security': HSTS }),
+    '',
+    '/sw.js',
+    '  Cache-Control: no-cache',
+    '',
+    '/manifest.webmanifest',
+    '  Cache-Control: no-cache',
+    '',
+    '/assets/*',
+    '  Cache-Control: public, max-age=31536000, immutable',
+    '',
+  ].join('\n'),
 )
 
 const robots = ['User-agent: *', 'Allow: /', 'Disallow: /api/']

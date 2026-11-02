@@ -43,13 +43,13 @@ export function pageTexture(tool) {
 
   // Tool name: up to two lines.
   g.fillStyle = '#ffffff'
-  g.font = '800 30px Inter, system-ui, sans-serif'
+  g.font = '800 30px "Inter Variable", Inter, system-ui, sans-serif'
   const lines = wrap(g, tool.name, W - 48)
   lines.slice(0, 2).forEach((l, i) => g.fillText(l, 24, (lines.length > 1 ? 50 : 70) + i * 36))
 
   // File-type chip.
   const tag = KIND_TAG[tool.kind] ?? 'PDF'
-  g.font = '800 20px Inter, system-ui, sans-serif'
+  g.font = '800 20px "Inter Variable", Inter, system-ui, sans-serif'
   g.beginPath()
   g.roundRect(24, 144, g.measureText(tag).width + 24, 34, 10)
   g.fillStyle = `${tool.color}22`

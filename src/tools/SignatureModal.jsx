@@ -1,6 +1,10 @@
 import { Eraser, ImagePlus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Checkbox, Segmented } from '../components/controls.jsx'
+// Handwriting fonts, self-hosted, and only loaded with the Sign tool (latin subsets).
+import '@fontsource/caveat/latin-600.css'
+import '@fontsource/dancing-script/latin-600.css'
+import '@fontsource/homemade-apple/latin-400.css'
 
 const FONTS = [
   { family: 'Dancing Script', label: 'Elegant' },
@@ -8,22 +12,6 @@ const FONTS = [
   { family: 'Homemade Apple', label: 'Handwritten' },
 ]
 const COLORS = ['#111827', '#1d4ed8', '#b91c1c']
-
-// The handwriting fonts are only needed here, so they load with the Sign tool instead of on every page.
-const FONTS_CSS =
-  'https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Dancing+Script:wght@600&family=Homemade+Apple&display=swap'
-let fontsCss = null
-function signatureFonts() {
-  fontsCss ??= new Promise((resolve) => {
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = FONTS_CSS
-    link.onload = link.onerror = resolve // offline: falls back to the system cursive font
-    document.head.appendChild(link)
-  })
-  return fontsCss
-}
-signatureFonts()
 
 function makeCanvas(w, h) {
   const c = document.createElement('canvas')
@@ -145,7 +133,6 @@ function DrawPad({ color, canvasRef, onInk }) {
 }
 
 async function renderTyped(text, family, color) {
-  await signatureFonts()
   await document.fonts.load(`120px "${family}"`)
   const probe = makeCanvas(10, 10).getContext('2d')
   probe.font = `120px "${family}"`

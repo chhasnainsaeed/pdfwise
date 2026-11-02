@@ -5,15 +5,17 @@
 //
 //   npm run server            # http://127.0.0.1:3001
 //
-// Environment: PORT, HOST, CONVERTER (auto | libreoffice | builtin), SOFFICE_PATH, CHROME_PATH,
+// Environment: PORT, HOST, MAX_PENDING_CONVERSIONS, MAX_UNZIPPED_MB, CONVERTER (auto | libreoffice | builtin), SOFFICE_PATH, CHROME_PATH,
 // MAX_UPLOAD_MB, CONVERT_TIMEOUT_S, CONVERT_CONCURRENCY, BROWSER_CONCURRENCY, ALLOW_PRIVATE_URLS,
 // BASIC_AUTH (user:password), RATE_LIMIT_PER_MIN, TRUST_PROXY, CHROME_NO_SANDBOX
 
 import express from 'express'
 import { createHash, timingSafeEqual } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ZIP_FORMATS, checkArchive } from './archive.js'
+import { HSTS, securityHeaders } from './security-headers.js'
 import { findBrowser, renderPdf } from './engines/browser.js'
 import { LIBREOFFICE_FORMATS, findSoffice, libreofficeToPdf } from './engines/libreoffice.js'
 import { BUILTIN_FORMATS, BUILTIN_NOTES, officeDocument } from './office/index.js'
@@ -26,6 +28,9 @@ const MAX_UPLOAD_MB = Number(process.env.MAX_UPLOAD_MB) || 100
 const CONVERTER = (process.env.CONVERTER || 'auto').toLowerCase()
 const BASIC_AUTH = process.env.BASIC_AUTH || ''
 const RATE_LIMIT = Number(process.env.RATE_LIMIT_PER_MIN ?? 30)
+// Conversions in progress at once (uploading, queued or running). Uploads are held in memory, so
+// this bounds memory use: extra requests get 503 + Retry-After instead of piling up.
+const MAX_PENDING = Number(process.env.MAX_PENDING_CONVERSIONS) || 8
 
 const digest = (s) => createHash('sha256').update(s).digest()
 
@@ -47,11 +52,28 @@ setInterval(() => {
 function rateLimit(req, res, next) {
   if (!RATE_LIMIT) return next()
   const now = Date.now()
+  // A flood from many addresses can't grow the table without bound.
+  if (hits.size > 100_000) hits.clear()
   let h = hits.get(req.ip)
   if (!h || now > h.reset) hits.set(req.ip, (h = { count: 0, reset: now + 60_000 }))
   if (++h.count <= RATE_LIMIT) return next()
   res.set('Retry-After', String(Math.ceil((h.reset - now) / 1000)))
   res.status(429).json({ error: 'Too many conversions in a short time. Wait a minute and try again.' })
+}
+
+let pending = 0
+function admit(req, res, next) {
+  if (pending >= MAX_PENDING) {
+    res.set('Retry-After', '15')
+    return res.status(503).json({ error: 'The server is busy with other conversions. Try again in a few seconds.' })
+  }
+  pending++
+  let released = false
+  res.on('close', () => {
+    if (!released) pending--
+    released = true
+  })
+  next()
 }
 
 /** Which engine converts Office files right now, and which extensions it accepts. */
@@ -62,14 +84,24 @@ function officeEngine() {
   return { name: null, formats: [] }
 }
 
+const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
+// Same headers as the static hosts get; the build writes the analytics origins it was built with.
+const headersFile = path.join(dist, 'security-headers.json')
+const HEADERS = existsSync(headersFile) ? JSON.parse(readFileSync(headersFile, 'utf8')) : securityHeaders()
+
 const app = express()
 app.disable('x-powered-by')
 if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY)
+app.use((req, res, next) => {
+  res.set(HEADERS)
+  if (req.secure) res.set('Strict-Transport-Security', HSTS)
+  next()
+})
 // Liveness check for Docker / load balancers. Before auth so it works with BASIC_AUTH on; says nothing
 // about the server beyond "up".
 app.get('/healthz', (req, res) => res.type('text/plain').send('ok'))
 if (BASIC_AUTH) app.use(requireAuth)
-app.use('/api/convert', rateLimit)
+app.use('/api/convert', rateLimit, admit)
 
 app.get('/api/health', (req, res) => {
   const engine = officeEngine()
@@ -108,6 +140,7 @@ app.post('/api/convert/pdf', express.raw({ type: () => true, limit: `${MAX_UPLOA
   if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: 'The file is empty.' })
   const started = Date.now()
   try {
+    if (ZIP_FORMATS.has(ext)) checkArchive(req.body)
     const title = path.basename(name, path.extname(name)).slice(0, 200)
     const pdf =
       engine.name === 'libreoffice'
@@ -160,7 +193,6 @@ app.use((err, req, res, next) => {
   next(err)
 })
 
-const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 if (existsSync(dist)) {
   // Pre-rendered pages are dist/<page>.html, served at /<page>. Anything else gets 404.html with a
   // 404 status (it still loads the app, which shows its own "not found" page).

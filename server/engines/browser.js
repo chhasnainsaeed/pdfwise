@@ -155,6 +155,8 @@ export function renderPdf({ html, url, prepare }, opts = {}) {
       })
 
       if (html) {
+        // Documents are untrusted: no scripts unless the converter needs its own (DOCX renderer).
+        if (!prepare) await page.setJavaScriptEnabled(false)
         await page.setViewport({ width: 1240, height: 1754 })
         await page.setContent(html, { waitUntil: 'load' })
         if (prepare) await prepare(page)

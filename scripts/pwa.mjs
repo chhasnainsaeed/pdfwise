@@ -9,7 +9,15 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const dist = path.join(root, 'dist')
-const SKIP = new Set(['sw.js', 'sitemap.xml', 'robots.txt', 'llms.txt', '404.html', '_headers'])
+const SKIP = new Set([
+  'sw.js',
+  'sitemap.xml',
+  'robots.txt',
+  'llms.txt',
+  '404.html',
+  '_headers',
+  'security-headers.json',
+])
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {
@@ -36,9 +44,10 @@ const urls = files.map((f) => (f === 'index.html' ? '/' : f.endsWith('.html') ? 
 // Data Saver or 2G, where it's cached the first time it's used instead.
 const entry = readFileSync(path.join(dist, 'index.html'), 'utf8')
 const entryAssets = new Set([...entry.matchAll(/(?:src|href)="\/(assets\/[^"]+)"/g)].map((m) => `/${m[1]}`))
-const isCore = (u) => !u.startsWith('/assets/') || entryAssets.has(u)
+const isCore = (u) => (!u.startsWith('/assets/') && !u.startsWith('/ocr/')) || entryAssets.has(u)
 const core = urls.filter(isCore)
-const rest = urls.filter((u) => !isCore(u))
+// The OCR engine (~8 MB) is cached the first time OCR is used rather than precached.
+const rest = urls.filter((u) => !isCore(u) && !u.startsWith('/ocr/'))
 const kb = (list) =>
   (
     list.reduce(
@@ -62,7 +71,6 @@ const sw = template
   .replace('__PRECACHE_REST__', JSON.stringify(rest, null, 2))
 writeFileSync(path.join(dist, 'sw.js'), sw)
 
-const bytes = files.reduce((n, f) => n + statSync(path.join(dist, f)).size, 0)
 console.log(
-  `[pwa] sw.js ${version}: ${urls.length} files (${(bytes / 1024 / 1024).toFixed(1)} MB) available offline — core ${core.length} files (${kb(core)} MB), rest ${rest.length} (${kb(rest)} MB, skipped on Data Saver)`,
+  `[pwa] sw.js ${version}: core ${core.length} files (${kb(core)} MB), rest ${rest.length} (${kb(rest)} MB, skipped on Data Saver); OCR engine cached on first use`,
 )

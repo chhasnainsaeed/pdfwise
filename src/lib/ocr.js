@@ -133,7 +133,12 @@ export async function ocrPdf(file, { lang, skipText, output }, progress) {
   const count = pdf.numPages
   const scale = DPI / 72
   const pages = []
-  const worker = await createWorker(lang, 1)
+  // Engine code comes from this site (see vite.config.js); only the language data is downloaded.
+  const worker = await createWorker(lang, 1, {
+    workerPath: new URL('/ocr/worker.min.js', location.href).href,
+    corePath: new URL('/ocr/', location.href).href,
+    workerBlobURL: false,
+  })
   try {
     for (let n = 1; n <= count; n++) {
       if (skipText && (await pageHasText(pdf, n))) {

@@ -20,12 +20,9 @@ www.{$DOMAIN} {
 		max_size {$MAX_UPLOAD_MB:100}MB
 	}
 
+	# The app sends the other security headers (server/security-headers.js); HSTS belongs to HTTPS.
 	header {
-		Strict-Transport-Security "max-age=31536000"
-		X-Content-Type-Options "nosniff"
-		Referrer-Policy "strict-origin-when-cross-origin"
-		X-Frame-Options "SAMEORIGIN"
-		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
 
