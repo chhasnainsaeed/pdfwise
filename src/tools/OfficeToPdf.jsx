@@ -58,7 +58,13 @@ export default function OfficeToPdf() {
       <div className="status-note is-unknown">
         <ServerOff size={18} />
         <span>
-          The conversion server isn’t running. Start it with <code>npm run server</code>, then check again.
+          {navigator.onLine ? (
+            <>
+              The conversion server isn’t running. Start it with <code>npm run server</code>, then check again.
+            </>
+          ) : (
+            'You’re offline. Office conversion needs a connection — check again once you’re back online.'
+          )}
         </span>
       </div>
     )

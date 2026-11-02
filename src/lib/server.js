@@ -1,5 +1,10 @@
 import { UserError } from './files.js'
 
+const unreachable = () =>
+  navigator.onLine
+    ? 'Couldn’t reach the conversion server. Start it with “npm run server” and try again.'
+    : 'You’re offline. This conversion needs an internet connection — every tool that runs in your browser still works.'
+
 /** Asks the conversion server whether it's up and whether LibreOffice is available. */
 export async function serverStatus() {
   try {
@@ -21,7 +26,7 @@ export async function convertUrlOnServer(url, options) {
       body: JSON.stringify({ url, ...options }),
     })
   } catch {
-    throw new UserError('Couldn’t reach the conversion server. Start it with “npm run server” and try again.')
+    throw new UserError(unreachable())
   }
   if (!res.ok) {
     const message = (await res.json().catch(() => null))?.error
@@ -52,7 +57,7 @@ export async function convertOnServer(file) {
       body: file,
     })
   } catch {
-    throw new UserError('Couldn’t reach the conversion server. Start it with “npm run server” and try again.')
+    throw new UserError(unreachable())
   }
   if (!res.ok) {
     const message = (await res.json().catch(() => null))?.error

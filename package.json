@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/prerender.mjs",
+    "build": "vite build && node scripts/prerender.mjs && node scripts/pwa.mjs",
     "preview": "vite preview",
     "server": "node server/index.js",
     "start": "npm run build && node server/index.js"

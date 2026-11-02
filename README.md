@@ -125,6 +125,27 @@ output straight into another tool.
 All placement math respects each page's `/Rotate` and crop box, so numbers, watermarks,
 signatures and crops land where the reader sees them, even on rotated pages.
 
+## Installable app and offline use
+
+PDFwise is a Progressive Web App. Chrome, Edge and Android show **Install app** in the header, and on
+iPhone or iPad the button explains *Share → Add to Home Screen*. Once installed:
+
+- **Works offline.** The service worker stores every page and built file (about 4.7 MB) after the
+  first visit. Every tool that runs in the browser works with no connection. OCR language data and
+  web fonts are cached the first time they're used. Office → PDF and HTML → PDF still need the server,
+  and they say so when you're offline.
+- **Share into PDFwise** (Android): share a PDF or image from WhatsApp, Gmail, Files and so on. It
+  opens on the home page with the file already checked and the right tools suggested.
+- **Open with PDFwise** (desktop Chrome/Edge): PDFwise is offered for PDF, JPG, PNG and WebP files.
+- **Shortcuts**: long-press or right-click the app icon for Compress, Merge, Workflows and Sign.
+- **Updates**: a new deploy shows a "new version is ready — Reload" message, and the old cache is
+  removed after reloading.
+
+`npm run build` generates `dist/sw.js` from [scripts/sw-template.js](scripts/sw-template.js) with
+[scripts/pwa.mjs](scripts/pwa.mjs). The service worker only registers in production builds and
+needs HTTPS (or `localhost`). If you host the files somewhere other than the Node server, serve
+`sw.js` and `manifest.webmanifest` with `Cache-Control: no-cache` so updates are picked up.
+
 ## Workflows
 
 **PDF Workflows** (`/pdf-workflows`) chains tools into one click and runs them on a whole batch,
@@ -174,6 +195,7 @@ src/
     analyze.js        inspects dropped files and ranks the tools that fit
     handoff.js        passes files between pages; remembers recently used tools
     workflow.js       workflow steps, recipes, validation, runner, save/share encoding
+    pwa.js            service worker registration/updates, install prompt, shared and opened files
     convert.js        images → PDF and PDF → images
     qpdf.js           qpdf WebAssembly wrapper: protect, unlock, repair
     ocr.js            Tesseract OCR and the invisible (any-script) text layer
@@ -183,6 +205,8 @@ src/
     geometry.js       visual ↔ PDF user-space mapping for rotated pages
 scripts/
   prerender.mjs       per-page static HTML, sitemap.xml and robots.txt after the Vite build
+  pwa.mjs             writes dist/sw.js: offline file list + version hash
+  sw-template.js      the service worker: offline caching, share target, updates
 server/
   index.js            routes, engine selection, auth, rate limiting
   engines/            libreoffice.js, browser.js (puppeteer-core + installed Chrome/Edge)

@@ -3974,3 +3974,165 @@ kbd {
     width: 30px;
   }
 }
+
+/* ---------- Installable app: install button, status toasts ---------- */
+
+.install-wrap {
+  position: relative;
+  margin-left: auto;
+}
+
+.install-wrap + .search-btn {
+  margin-left: 0;
+}
+
+.install-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.install-btn:hover {
+  background: color-mix(in srgb, var(--brand) 18%, #fff);
+}
+
+.install-help {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  width: 280px;
+  padding: 16px 40px 16px 16px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow-lg);
+  font-size: 14px;
+  animation: palette-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.install-help ol {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+
+.install-help li {
+  margin: 4px 0;
+}
+
+.install-help svg {
+  vertical-align: -3px;
+  color: var(--brand);
+}
+
+.install-help p {
+  margin: 0;
+  color: var(--ink-3);
+}
+
+.install-help .icon-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+}
+
+.app-toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  z-index: 150;
+  display: grid;
+  gap: 8px;
+  width: min(560px, calc(100% - 32px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.app-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 18px 40px -12px rgba(24, 23, 43, 0.5);
+  pointer-events: auto;
+  animation: toast-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.app-toast > span {
+  flex: 1;
+}
+
+.app-toast .icon-btn {
+  width: 30px;
+  height: 30px;
+  color: #fff;
+  background: transparent;
+}
+
+.app-toast .icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.app-toast .btn {
+  padding: 6px 14px;
+}
+
+.app-toast.is-update {
+  background: var(--brand);
+}
+
+.app-toast.is-update .btn {
+  background: #fff;
+  color: var(--brand);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) rotateX(-30deg);
+  }
+}
+
+/* Installed on desktop with a custom title bar: keep the header clear of window controls. */
+@media (display-mode: window-controls-overlay) {
+  .site-header {
+    padding-left: env(titlebar-area-x, 0);
+    padding-right: calc(100vw - env(titlebar-area-width, 100vw) - env(titlebar-area-x, 0px));
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+  .site-header a,
+  .site-header button,
+  .site-header input {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}
+
+@media (max-width: 520px) {
+  .install-help {
+    position: fixed;
+    top: calc(var(--header-h) + 8px);
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+  .install-btn span {
+    display: none;
+  }
+  .install-btn {
+    padding: 8px;
+  }
+}

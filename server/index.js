@@ -137,6 +137,10 @@ app.post('/api/convert/url', express.json({ limit: '16kb' }), async (req, res) =
   }
 })
 
+// The installed app's share target. The service worker normally answers this; if it isn't
+// running yet, just open the app instead of showing an error.
+app.post('/share-target', (req, res) => res.redirect(303, '/'))
+
 app.use((err, req, res, next) => {
   if (err?.type === 'entity.too.large') return res.status(413).json({ error: `Files up to ${MAX_UPLOAD_MB} MB can be converted.` })
   if (err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'The request wasn’t valid JSON.' })

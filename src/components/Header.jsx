@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { BRAND, CATEGORIES, TOOLS, TOOLS_BY_ID } from '../tools.js'
 import { openPalette } from '../lib/events.js'
+import { InstallButton } from './AppStatus.jsx'
 import Logo from './Logo.jsx'
 import ToolIcon from './ToolIcon.jsx'
 
@@ -96,6 +97,7 @@ export default function Header() {
           </Dropdown>
         </nav>
 
+        <InstallButton />
         <button type="button" className="search-btn" onClick={openPalette} aria-label="Search tools (Ctrl+K)">
           <Search size={18} />
           <span className="search-btn-text">Search tools</span>

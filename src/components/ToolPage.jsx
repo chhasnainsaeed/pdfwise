@@ -7,6 +7,7 @@ import { SessionContext } from '../lib/hooks.js'
 import { ALIASES, TOOL_SEO, applyHead } from '../seo.js'
 import { TOOLS_BY_ID } from '../tools.js'
 import { TOOL_COMPONENTS } from '../tools/index.jsx'
+import { useOnline } from './AppStatus.jsx'
 import ToolIcon from './ToolIcon.jsx'
 
 const hasFiles = (e) => Array.from(e.dataTransfer?.types ?? []).includes('Files')
@@ -193,6 +194,7 @@ function ToolSession({ tool, alias }) {
 
 function UploadStage({ tool, title, lead, onFiles, error }) {
   const input = useRef(null)
+  const online = useOnline()
   const noun = KINDS[tool.kind].label
   const plural = tool.multiple ? `${noun} files` : `${noun} file`
   return (
@@ -225,6 +227,11 @@ function UploadStage({ tool, title, lead, onFiles, error }) {
       {error && (
         <div className="alert upload-alert" role="alert">
           {error}
+        </div>
+      )}
+      {tool.server && !online && (
+        <div className="alert upload-alert" role="status">
+          You’re offline. {tool.name} needs a connection to the conversion server.
         </div>
       )}
       <p className="privacy-note">

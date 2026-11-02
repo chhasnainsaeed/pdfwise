@@ -5,6 +5,7 @@ import { analyzeFiles, findUrl } from '../lib/analyze.js'
 import { uid } from '../lib/files.js'
 import { EXCITE, openPalette } from '../lib/events.js'
 import { handOff } from '../lib/handoff.js'
+import { PWA_EVENT, takeIncoming } from '../lib/pwa.js'
 import { TOOLS_BY_ID } from '../tools.js'
 import ToolIcon from './ToolIcon.jsx'
 
@@ -37,6 +38,26 @@ export default function SmartDrop() {
       excite(false)
     }
   }, [])
+
+  // Files shared from another app, or opened with PDFwise from the desktop.
+  useEffect(() => {
+    const pickUp = () => {
+      const got = takeIncoming()
+      if (!got) return
+      if (got.files.length) analyze(got.files)
+      else {
+        const url = findUrl(got.text)
+        if (url) {
+          handOff('html-to-pdf', [], { url })
+          navigate('/html-to-pdf')
+        }
+      }
+    }
+    pickUp()
+    const on = (e) => e.detail.type === 'incoming' && pickUp()
+    window.addEventListener(PWA_EVENT, on)
+    return () => window.removeEventListener(PWA_EVENT, on)
+  }, [analyze, navigate])
 
   useEffect(() => {
     let depth = 0
