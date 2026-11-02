@@ -7,7 +7,7 @@
 //
 // Environment: PORT, HOST, CONVERTER (auto | libreoffice | builtin), SOFFICE_PATH, CHROME_PATH,
 // MAX_UPLOAD_MB, CONVERT_TIMEOUT_S, CONVERT_CONCURRENCY, BROWSER_CONCURRENCY, ALLOW_PRIVATE_URLS,
-// BASIC_AUTH (user:password), RATE_LIMIT_PER_MIN, TRUST_PROXY
+// BASIC_AUTH (user:password), RATE_LIMIT_PER_MIN, TRUST_PROXY, CHROME_NO_SANDBOX
 
 import express from 'express'
 import { createHash, timingSafeEqual } from 'node:crypto'

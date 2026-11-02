@@ -61,6 +61,7 @@ conversion. The server listens on 127.0.0.1 by default; set `BASIC_AUTH` before 
 | `TRUST_PROXY` | off | Express `trust proxy` value when running behind a reverse proxy |
 | `CONVERTER` | `auto` | `libreoffice` or `builtin` to force one |
 | `SOFFICE_PATH`, `CHROME_PATH` | auto-detected | |
+| `CHROME_NO_SANDBOX` | off | `1` launches Chromium with `--no-sandbox`, which most containers need (the [Dockerfile](Dockerfile) sets it). Leave it off elsewhere: the sandbox is what contains a hostile web page |
 | `MAX_UPLOAD_MB` | `100` | |
 | `CONVERT_TIMEOUT_S` | `120` | |
 | `CONVERT_CONCURRENCY` | `2` | parallel LibreOffice instances |
@@ -72,6 +73,80 @@ conversion. The server listens on 127.0.0.1 by default; set `BASIC_AUTH` before 
 | `GET /api/health` | `{ ok, engine, formats, notes, libreoffice, browser, maxUploadMb }` |
 | `POST /api/convert/pdf` | Raw file body + `X-File-Name` header (URL-encoded) → `application/pdf`, or `{ error }` with 400/413/415/422/429/503/504 |
 | `POST /api/convert/url` | JSON `{ url, format: "A4"\|"Letter", landscape, margin: "none"\|"small"\|"normal", background, screen }` → `application/pdf` |
+
+## Deploy
+
+### Docker (everything, one container)
+
+The [Dockerfile](Dockerfile) builds the app and runs the conversion server, which serves the app and
+`/api` together on port 3001. The image is Node 22 with Chromium and fonts (Latin, CJK and more) for
+the built-in converter and HTML → PDF; `npm ci` fetches `xlsx` from cdn.sheetjs.com, so the build needs
+internet access. It runs as the non-root `node` user.
+
+```bash
+docker build -t pdfwise .
+docker run -d --name pdfwise -p 3001:3001 -e BASIC_AUTH=team:a-long-password pdfwise
+```
+
+Add LibreOffice for the best Office fidelity and binary `.ppt` (about 600 MB more):
+
+```bash
+docker build --build-arg INCLUDE_LIBREOFFICE=true -t pdfwise .
+```
+
+> **Set `BASIC_AUTH` whenever the server can be reached from outside your machine.** The container
+> listens on `0.0.0.0`, and an open server lets anyone convert files and have your server fetch web pages
+> for them. Basic auth only protects you over HTTPS (the platforms below provide it; on a VPS put Caddy
+> or nginx in front). To keep it local, publish the port as `-p 127.0.0.1:3001:3001`.
+
+Give the container at least 1 GB of RAM (2 GB with LibreOffice): Chromium is the hungry part. Behind a
+reverse proxy also set `TRUST_PROXY=1`, or every visitor shares one rate-limit bucket under the proxy's
+IP. Every setting in the table above works as a `-e` variable.
+
+**Render, Railway, Fly.io.** All three build the Dockerfile straight from the GitHub repo:
+
+- **Render:** New → Web Service → pick the repo; the Docker runtime is detected. Choose an instance with
+  1 GB+ (the free 512 MB one is too small). Environment: `BASIC_AUTH`, `TRUST_PROXY=1`. Leave the health
+  check path empty: `/api/health` answers 401 once `BASIC_AUTH` is on. Render injects `PORT` itself.
+  Add `INCLUDE_LIBREOFFICE=true` as an environment variable for the LibreOffice build.
+- **Railway:** New Project → Deploy from GitHub repo; the Dockerfile is picked up. Variables:
+  `BASIC_AUTH`, `TRUST_PROXY=1` (and `INCLUDE_LIBREOFFICE=true` if wanted), then Settings → Networking →
+  Generate Domain. Railway injects `PORT`.
+- **Fly.io:** `fly launch` (accept the Dockerfile, set the internal port to 3001), then
+  `fly secrets set BASIC_AUTH=team:a-long-password TRUST_PROXY=1`, `fly scale memory 1024` and
+  `fly deploy` (`fly deploy --build-arg INCLUDE_LIBREOFFICE=true` for LibreOffice). Use a TCP health
+  check, not an HTTP one, for the same reason as on Render.
+
+**VPS.** Install Docker, build the image, and publish it only on loopback behind a TLS proxy:
+
+```bash
+docker run -d --name pdfwise --restart unless-stopped -p 127.0.0.1:3001:3001 \
+  -e BASIC_AUTH=team:a-long-password -e TRUST_PROXY=1 pdfwise
+caddy reverse-proxy --from pdfwise.example.com --to 127.0.0.1:3001
+```
+
+With nginx instead of Caddy, raise `client_max_body_size` (default 1 MB) to match `MAX_UPLOAD_MB`.
+
+### Frontend only (Vercel, Netlify, Cloudflare Pages)
+
+Without a server, every tool except the Office and HTML ones works, because the rest run in the
+visitor's browser. **Word / Excel / PowerPoint to PDF and HTML to PDF show “The conversion server
+isn’t running.”** Connect the repo and use:
+
+| Setting | Value |
+| --- | --- |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+
+The app has client-side routes, so unknown paths must fall back to `index.html`:
+
+- **Netlify:** [public/_redirects](public/_redirects) (copied into `dist`) does it.
+- **Vercel:** [vercel.json](vercel.json) does it.
+- **Cloudflare Pages:** nothing needed. With no top-level `404.html` it serves `index.html` for unknown
+  paths, and it ignores the `_redirects` rule (with a warning in the build log).
+
+These files are harmless in the Docker image: the server already falls back to `index.html`, and
+`/_redirects` is just a static file there.
 
 ## Tools
 

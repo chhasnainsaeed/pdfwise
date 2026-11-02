@@ -12,6 +12,9 @@ import { HttpError, limiter } from '../util.js'
 const IDLE_MS = 5 * 60_000
 const TIMEOUT_MS = (Number(process.env.CONVERT_TIMEOUT_S) || 120) * 1000
 const queue = limiter(Math.max(1, Number(process.env.BROWSER_CONCURRENCY) || 3))
+// Containers usually can't give Chromium the user namespaces its sandbox needs. Opt-in only:
+// the sandbox stays on everywhere else.
+const SANDBOX_ARGS = process.env.CHROME_NO_SANDBOX === '1' ? ['--no-sandbox'] : []
 
 export function findBrowser() {
   if (process.env.CHROME_PATH) return existsSync(process.env.CHROME_PATH) ? process.env.CHROME_PATH : null
@@ -61,6 +64,7 @@ async function getBrowser() {
       '--disable-gpu',
       '--mute-audio',
       '--hide-scrollbars',
+      ...SANDBOX_ARGS,
       // All page traffic goes through the checking proxy, loopback included.
       `--proxy-server=http://127.0.0.1:${proxyPort}`,
       '--proxy-bypass-list=<-loopback>',
