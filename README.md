@@ -330,14 +330,17 @@ The way changes reach `main`:
    - a Docker build that starts the server and checks its health, pages, 404 and security headers
 5. **Review and merge:** merge when CI is green and the change has been reviewed.
 
-**Turn on branch protection once** (GitHub → Settings → Branches → Add rule for `main`):
+**Checks before every push, free:** `npm install` switches on a git hook
+([.githooks/pre-push](.githooks/pre-push)) that runs `npm run check` before each `git push` and
+cancels the push if anything fails. For an emergency, `git push --no-verify` skips it once.
 
-- require a pull request with 1 approval and code-owner review ([.github/CODEOWNERS](.github/CODEOWNERS))
-- require the **CI** checks to pass
-- block force pushes
+**Branch protection on GitHub** (Settings → Branches → rule for `main`: require a pull request and
+the **CI** checks, block force pushes) is enforced on private repositories only with a paid plan
+(GitHub Pro or Team). On the free plan, rely on the pre-push hook and CI's ✓/✗ on every commit, and
+turn branch protection on when the team grows.
 
-Also turn on **private vulnerability reporting** and **Dependabot alerts** under Settings → Code
-security. [.github/dependabot.yml](.github/dependabot.yml) then opens weekly update pull requests,
+Also turn on **Dependabot alerts** and **Dependabot security updates** under Settings → Code
+security (free). [.github/dependabot.yml](.github/dependabot.yml) then opens weekly update pull requests,
 and security fixes as soon as they're published.
 
 Security design and how to report a vulnerability: [SECURITY.md](SECURITY.md).
