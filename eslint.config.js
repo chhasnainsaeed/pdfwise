@@ -6,7 +6,8 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import globals from 'globals'
 
 export default [
-  { ignores: ['dist/', 'node_modules/', 'pdfwise-backup*/'] },
+  // .claude/ holds Claude Code's local worktrees and settings: other branches' copies, not this code.
+  { ignores: ['dist/', 'node_modules/', 'pdfwise-backup*/', '.claude/'] },
   js.configs.recommended,
   {
     rules: {
