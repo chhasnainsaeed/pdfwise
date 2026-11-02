@@ -2,6 +2,7 @@ import { CornerDownLeft, Search } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { OPEN_PALETTE } from '../lib/events.js'
+import { track } from '../lib/analytics.js'
 import { recentTools } from '../lib/handoff.js'
 import { ALIASES, TOOL_SEO } from '../seo.js'
 import { TOOLS, TOOLS_BY_ID } from '../tools.js'
@@ -20,7 +21,7 @@ const ENTRIES = [
     name: a.name,
     tool: TOOLS_BY_ID[a.tool],
     text: a.seo.lead,
-    hay: `${a.name} reduce shrink size`.toLowerCase(),
+    hay: [a.name, ...(a.keywords ?? [])].join(' ').toLowerCase(),
   })),
 ]
 
@@ -94,6 +95,7 @@ export default function CommandPalette() {
   if (!open) return null
 
   const go = (entry) => {
+    track('Search used', { page: entry.path.slice(1), typed: query.trim() ? 'yes' : 'no' })
     setOpen(false)
     navigate(entry.path)
   }

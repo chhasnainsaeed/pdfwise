@@ -15,6 +15,7 @@ import {
   encodeWorkflow,
   newStep,
   runWorkflow,
+  sanitizeSteps,
   savedWorkflows,
   saveWorkflows,
 } from '../lib/workflow.js'
@@ -31,11 +32,14 @@ function starter(files) {
 }
 
 export default function Workflow() {
-  const { files, setFiles, run } = useSession()
+  const session = useSession()
+  const { files, setFiles, run } = session
   const [params, setParams] = useSearchParams()
   const [initial] = useState(() => {
     const shared = params.get('w') && decodeWorkflow(params.get('w'))
     if (shared) return { name: shared.name, steps: shared.steps, shared: true }
+    const preset = session.preset?.workflow && sanitizeSteps(session.preset.workflow)
+    if (preset?.length) return { name: session.preset.name, steps: preset }
     const r = starter(files)
     return { name: r.name, steps: r.steps }
   })
@@ -132,6 +136,10 @@ export default function Workflow() {
         zipName: `${(name.trim() || 'workflow').replace(/[^\w-]+/g, '-').toLowerCase()}.zip`,
         stats: steps.some((s) => s.type === 'compress') ? { before: totalIn, after: totalOut } : undefined,
         note: [summary, ...notes].join(' '),
+        analytics: {
+          recipe: RECIPES.some((r) => r.name === name) || name === session.preset?.name ? name : 'custom',
+          steps: steps.map((s) => s.type).join('>'),
+        },
       }
     })
 

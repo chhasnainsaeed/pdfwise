@@ -125,6 +125,50 @@ output straight into another tool.
 All placement math respects each page's `/Rotate` and crop box, so numbers, watermarks,
 signatures and crops land where the reader sees them, even on rotated pages.
 
+## Growth: landing pages, analytics, search engines
+
+### Landing pages for specific searches
+
+[src/landing.js](src/landing.js) lists pages like “JPG to PDF under 200 KB”, “Merge PDF under 1 MB”,
+“Compress PDF for a job application” or “Scan documents to PDF”. Each opens an existing tool or
+workflow already set up for the job (target size, quality level or a chain of steps) and has its own
+title, description, explanation, steps and FAQ. The build pre-renders each one, adds it to the
+sitemap, `llms.txt`, the home page's “Made for the job you're doing” section and the command
+palette, and links related pages to each other.
+
+To add a page, add an entry to `LANDING_PAGES`. Write copy that's unique to the page, and only
+state a site's upload limit if you've checked it on the official site.
+
+### Analytics (optional, privacy-friendly)
+
+Set one of these when building. Both providers are cookie-free, so no consent banner is needed:
+
+```bash
+VITE_PLAUSIBLE_DOMAIN=your-domain.com npm run build        # Plausible (VITE_PLAUSIBLE_SRC to self-host)
+VITE_UMAMI_WEBSITE_ID=<website-id> npm run build           # Umami (VITE_UMAMI_SRC to self-host)
+```
+
+Besides page views, [src/lib/analytics.js](src/lib/analytics.js) records: `Files added` (tool, page,
+count, how: picker/drop/paste/smart-drop/continue), `Tool completed` (tool, page, outputs, time,
+offline, compress mode/size, workflow steps), `Tool failed`, `Download`, `Smart drop` and
+`Smart drop pick`, `Search used`, `App installed`, `Install prompt`, `Shared into app`,
+`Opened with app` and `404`. Counts and times are bucketed. File names, contents, typed text and
+passwords are never sent. In Plausible, add these as custom events (goals), and add `tool` and
+`page` as custom properties to break them down.
+
+### Search Console and Bing
+
+```bash
+SITE_URL=https://your-domain.com \
+GOOGLE_SITE_VERIFICATION=<content value of Google's HTML tag> \
+BING_SITE_VERIFICATION=<content value of Bing's msvalidate.01 tag> \
+npm run build
+```
+
+Then submit `https://your-domain.com/sitemap.xml` in both. The build also writes
+[`llms.txt`](https://llmstxt.org/), a plain summary of every tool and task page for AI assistants
+and AI search.
+
 ## Installable app and offline use
 
 PDFwise is a Progressive Web App. Chrome, Edge and Android show **Install app** in the header, and on
@@ -181,7 +225,8 @@ single tool.
 ```
 src/
   tools.js            tool registry (name, color, copy, related tools) and the BRAND constant
-  seo.js              page titles, descriptions, keywords, how-to steps, FAQs, compress-to-size pages
+  seo.js              page titles, descriptions, keywords, how-to steps, FAQs; landing-page aliases
+  landing.js          landing pages for specific searches (size, combine, task) with tool presets
   components/         shell: header, home grid, tool session (upload → edit → done), thumbnails,
                       Hero3D (three.js scene), SmartDrop, CommandPalette
   tools/              one workspace component per tool
@@ -196,6 +241,7 @@ src/
     handoff.js        passes files between pages; remembers recently used tools
     workflow.js       workflow steps, recipes, validation, runner, save/share encoding
     pwa.js            service worker registration/updates, install prompt, shared and opened files
+    analytics.js      optional Plausible/Umami events (no file names or contents)
     convert.js        images → PDF and PDF → images
     qpdf.js           qpdf WebAssembly wrapper: protect, unlock, repair
     ocr.js            Tesseract OCR and the invisible (any-script) text layer
@@ -204,7 +250,7 @@ src/
     pdfjs.js          PDF.js setup, rendering and the lazy thumbnail cache
     geometry.js       visual ↔ PDF user-space mapping for rotated pages
 scripts/
-  prerender.mjs       per-page static HTML, sitemap.xml and robots.txt after the Vite build
+  prerender.mjs       per-page static HTML, sitemap.xml, robots.txt and llms.txt after the Vite build
   pwa.mjs             writes dist/sw.js: offline file list + version hash
   sw-template.js      the service worker: offline caching, share target, updates
 server/

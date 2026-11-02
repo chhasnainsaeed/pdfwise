@@ -3,6 +3,7 @@
 // scripts/prerender.mjs, which writes one static HTML file per page at build time.
 // Pure data — no browser or React imports, so Node can load it.
 
+import { LANDING_PAGES } from './landing.js'
 import { BRAND, TOOLS, TOOLS_BY_ID } from './tools.js'
 
 export const HOME_SEO = {
@@ -94,33 +95,59 @@ export const SIZE_TARGETS = [
   { slug: '2mb', label: '2 MB', bytes: 2 * 1024 * 1024 },
 ]
 
+// Landing pages (src/landing.js): a tool opened with a preset, plus copy for one specific search.
+function landingFaq(page, tool) {
+  const local = !tool.server
+  return [
+    ...page.faq,
+    ['Is it free?', `Yes. ${BRAND} is free with no sign-up, no watermark on your files and no daily limits.`],
+    local
+      ? ['Are my files uploaded?', 'No. Everything runs in your browser, so your files never leave your device.']
+      : ['Are my files uploaded?', 'Yes — this conversion needs a server. Files are deleted as soon as the result is ready.'],
+  ]
+}
+
 export const ALIASES = Object.fromEntries(
-  SIZE_TARGETS.map((s) => {
-    const base = TOOLS_BY_ID['compress-pdf']
+  LANDING_PAGES.map((page) => {
+    const tool = TOOLS_BY_ID[page.tool]
     return [
-      `compress-pdf-to-${s.slug}`,
+      page.slug,
       {
-        tool: 'compress-pdf',
-        target: s.bytes,
-        name: `Compress PDF to ${s.label}`,
+        tool: page.tool,
+        group: page.group,
+        name: page.name,
+        target: page.preset.target,
+        level: page.preset.level,
+        workflow: page.preset.workflow,
+        keywords: page.keywords,
         seo: {
-          ...TOOL_SEO['compress-pdf'],
-          title: `Compress PDF to ${s.label} — Free, No Upload | ${BRAND}`,
-          description: `Reduce a PDF to under ${s.label} for job portals, admissions and government forms. Runs in your browser — files never leave your device. Free, no sign-up.`,
-          lead: `Shrink your PDF to under ${s.label} — the right size for online forms, job portals and email.`,
-          steps: [`Select or drop your PDF ${plural(base)}.`, `The target is already set to ${s.label} — change it if you need to.`, 'Click “Compress PDF” and download the result.'],
+          title: `${page.title} | ${BRAND}`,
+          description: page.description,
+          lead: page.lead,
+          about: page.about,
+          steps: page.steps,
+          faq: landingFaq(page, tool),
+          keywords: page.keywords,
         },
       },
     ]
   }),
 )
 
+/** Other landing pages to link to from one page: same group first, then the rest. */
+export function siblingPages(slug, limit = 8) {
+  const me = ALIASES[slug]
+  const all = Object.entries(ALIASES).filter(([id]) => id !== slug)
+  const ranked = me ? [...all.filter(([, a]) => a.group === me.group), ...all.filter(([, a]) => a.group !== me.group)] : all
+  return ranked.slice(0, limit).map(([id, a]) => ({ path: `/${id}`, name: a.name }))
+}
+
 /** Every crawlable path with its page data, for the prerenderer and sitemap. */
 export function allPages() {
   return [
     { path: '/', name: BRAND, seo: HOME_SEO },
     ...TOOLS.map((t) => ({ path: `/${t.id}`, name: t.name, tool: t, seo: TOOL_SEO[t.id] })),
-    ...Object.entries(ALIASES).map(([id, a]) => ({ path: `/${id}`, name: a.name, tool: TOOLS_BY_ID[a.tool], seo: a.seo })),
+    ...Object.entries(ALIASES).map(([id, a]) => ({ path: `/${id}`, name: a.name, tool: TOOLS_BY_ID[a.tool], seo: a.seo, slug: id })),
   ]
 }
 

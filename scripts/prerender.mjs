@@ -10,12 +10,16 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { allPages } from '../src/seo.js'
+import { LANDING_GROUPS } from '../src/landing.js'
+import { ALIASES, HOME_SEO, allPages, siblingPages } from '../src/seo.js'
 import { BRAND, CATEGORIES, TOOLS } from '../src/tools.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const dist = path.join(root, 'dist')
 const SITE = (process.env.SITE_URL || '').replace(/\/+$/, '')
+// Google Search Console → Settings → Ownership verification → HTML tag: the content="…" value.
+const GOOGLE_VERIFICATION = process.env.GOOGLE_SITE_VERIFICATION || ''
+const BING_VERIFICATION = process.env.BING_SITE_VERIFICATION || ''
 if (!SITE) console.warn('[prerender] SITE_URL is not set — skipping canonical URLs and sitemap.xml. Example: SITE_URL=https://pdfwise.example npm run build')
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -38,6 +42,8 @@ function head(page) {
     `<meta name="twitter:description" content="${esc(description)}" />`,
   ]
   if (SITE) tags.push(`<link rel="canonical" href="${abs(page.path)}" />`, `<meta property="og:url" content="${abs(page.path)}" />`)
+  if (page.path === '/' && GOOGLE_VERIFICATION) tags.push(`<meta name="google-site-verification" content="${esc(GOOGLE_VERIFICATION)}" />`)
+  if (page.path === '/' && BING_VERIFICATION) tags.push(`<meta name="msvalidate.01" content="${esc(BING_VERIFICATION)}" />`)
   for (const ld of jsonLd(page)) tags.push(`<script type="application/ld+json">${json(ld)}</script>`)
   return tags.join('\n    ')
 }
@@ -83,6 +89,15 @@ function jsonLd(page) {
   return out
 }
 
+const landingNav = () =>
+  LANDING_GROUPS.map(
+    (g) =>
+      `<h2>${esc(g.label)}</h2><ul>${Object.entries(ALIASES)
+        .filter(([, a]) => a.group === g.id)
+        .map(([id, a]) => `<li><a href="/${id}">${esc(a.name)}</a></li>`)
+        .join('')}</ul>`,
+  ).join('')
+
 const nav = () =>
   CATEGORIES.map(
     (c) =>
@@ -93,13 +108,16 @@ const nav = () =>
 
 function body(page) {
   if (!page.tool) {
-    return `<main class="seo-static"><h1>Every PDF tool you need, right in your browser</h1><p>${esc(page.seo.description)}</p>${nav()}</main>`
+    return `<main class="seo-static"><h1>Every PDF tool you need, right in your browser</h1><p>${esc(page.seo.description)}</p>${nav()}${landingNav()}</main>`
   }
   const t = page.tool
   const steps = page.seo.steps.map((s) => `<li>${esc(s)}</li>`).join('')
   const faq = page.seo.faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')
-  const related = t.related.map((id) => TOOLS.find((x) => x.id === id)).filter(Boolean)
-  return `<main class="seo-static"><nav><a href="/">${esc(BRAND)}</a></nav><h1>${esc(page.name)}</h1><p>${esc(page.seo.lead ?? t.description)}</p><h2>How to use ${esc(page.name)}</h2><ol>${steps}</ol><h2>Frequently asked questions</h2>${faq}${
+  const related = (page.slug ? [t.id, ...t.related] : t.related).map((id) => TOOLS.find((x) => x.id === id)).filter(Boolean)
+  const more = page.slug || ['compress-pdf', 'pdf-workflows'].includes(t.id) ? siblingPages(page.slug, 8) : []
+  const about = page.seo.about ? `<p>${esc(page.seo.about)}</p>` : ''
+  const moreHtml = more.length ? `<h2>More ways to get it done</h2><ul>${more.map((m) => `<li><a href="${m.path}">${esc(m.name)}</a></li>`).join('')}</ul>` : ''
+  return `<main class="seo-static"><nav><a href="/">${esc(BRAND)}</a></nav><h1>${esc(page.name)}</h1><p>${esc(page.seo.lead ?? t.description)}</p>${about}<h2>How to use ${esc(page.name)}</h2><ol>${steps}</ol><h2>Frequently asked questions</h2>${faq}${moreHtml}${
     related.length ? `<h2>Related tools</h2><ul>${related.map((r) => `<li><a href="/${r.id}">${esc(r.name)}</a></li>`).join('')}</ul>` : ''
   }</main>`
 }
@@ -119,10 +137,30 @@ const robots = ['User-agent: *', 'Allow: /', 'Disallow: /api/']
 if (SITE) {
   const today = new Date().toISOString().slice(0, 10)
   const urls = pages
-    .map((p) => `  <url><loc>${abs(p.path)}</loc><lastmod>${today}</lastmod><priority>${p.path === '/' ? '1.0' : p.path.startsWith('/compress-pdf-to-') ? '0.7' : '0.8'}</priority></url>`)
+    .map((p) => `  <url><loc>${abs(p.path)}</loc><lastmod>${today}</lastmod><priority>${p.path === '/' ? '1.0' : p.slug ? '0.7' : '0.8'}</priority></url>`)
     .join('\n')
   writeFileSync(path.join(dist, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`)
   robots.push('', `Sitemap: ${abs('/sitemap.xml')}`)
 }
 writeFileSync(path.join(dist, 'robots.txt'), `${robots.join('\n')}\n`)
-console.log(`[prerender] wrote ${pages.length} pages${SITE ? ', sitemap.xml' : ''} and robots.txt`)
+
+// llms.txt (llmstxt.org): a plain summary for AI assistants and AI search engines.
+const link = (p) => (SITE ? abs(p) : p)
+const llms = [
+  `# ${BRAND}`,
+  '',
+  `> ${HOME_SEO.description}`,
+  '',
+  'Almost every tool runs entirely in the browser (pdf-lib, PDF.js, qpdf WebAssembly, Tesseract OCR), so files are not uploaded. It works offline once installed as an app. Only Office → PDF and HTML → PDF use a server, and those files are deleted right after conversion. Free, no account, no watermark.',
+  '',
+  '## Tools',
+  '',
+  ...TOOLS.map((t) => `- [${t.name}](${link(`/${t.id}`)}): ${t.description}${t.server ? ' (uses a server)' : ''}`),
+  '',
+  '## Tasks',
+  '',
+  ...Object.entries(ALIASES).map(([id, a]) => `- [${a.name}](${link(`/${id}`)}): ${a.seo.lead}`),
+  '',
+]
+writeFileSync(path.join(dist, 'llms.txt'), llms.join('\n'))
+console.log(`[prerender] wrote ${pages.length} pages${SITE ? ', sitemap.xml' : ''}, robots.txt and llms.txt${GOOGLE_VERIFICATION ? ' (+ Google verification tag)' : ''}`)

@@ -33,7 +33,7 @@ export default function Compress() {
   const { files, setFiles, run, preset } = useSession()
   const info = usePdfInfo(files)
   const [mode, setMode] = useState(preset?.target ? 'target' : 'level')
-  const [level, setLevel] = useState('recommended')
+  const [level, setLevel] = useState(preset?.level ?? 'recommended')
   const [target, setTarget] = useState(() => initialTarget(preset?.target))
   const broken = files.filter((f) => info[f.id]?.error)
 
@@ -72,7 +72,7 @@ export default function Compress() {
           ? 'Re-encoding the images didn’t make the file smaller, so your original is kept as-is.'
           : 'There were no large images to shrink — text and vector graphics are already compact.'
       }
-      return { files: out, zipName: 'compressed-pdfs.zip', stats: { before, after }, note }
+      return { files: out, zipName: 'compressed-pdfs.zip', stats: { before, after }, note, analytics: { mode, setting: mode === 'target' ? formatBytes(targetBytes) : level } }
     })
 
   return (

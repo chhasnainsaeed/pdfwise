@@ -3,6 +3,8 @@
 
 export const PWA_EVENT = 'pdfwise:pwa' // detail: { type: 'update' | 'offline-ready' | 'installable' | 'installed' | 'incoming' }
 
+import { bucket, track } from './analytics.js'
+
 const emit = (type) => window.dispatchEvent(new CustomEvent(PWA_EVENT, { detail: { type } }))
 
 let waiting = null
@@ -56,6 +58,7 @@ export function listenForInstall() {
     emit('installable')
   })
   window.addEventListener('appinstalled', () => {
+    track('App installed')
     installEvent = null
     emit('installed')
   })
@@ -67,6 +70,7 @@ export async function promptInstall() {
   if (!installEvent) return false
   installEvent.prompt()
   const { outcome } = await installEvent.userChoice
+  track('Install prompt', { outcome })
   installEvent = null
   emit(outcome === 'accepted' ? 'installed' : 'installable')
   return outcome === 'accepted'
@@ -98,6 +102,7 @@ export function listenForLaunchedFiles() {
   window.launchQueue.setConsumer(async (params) => {
     if (!params.files?.length) return
     const files = await Promise.all(params.files.map((h) => h.getFile()))
+    track('Opened with app', { files: bucket(files.length) })
     deliver(files)
   })
 }
@@ -118,6 +123,7 @@ export async function collectSharedFiles() {
       }
       await cache.delete(req)
     }
+    track('Shared into app', { files: bucket(files.length), text: text ? 'yes' : 'no' })
     deliver(files, text)
   } catch (e) {
     console.warn('Could not read shared files', e)

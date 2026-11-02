@@ -2,7 +2,8 @@ import { BadgeCheck, Clock, ShieldCheck, Zap } from 'lucide-react'
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { recentTools } from '../lib/handoff.js'
-import { HOME_SEO, SIZE_TARGETS, applyHead } from '../seo.js'
+import { LANDING_GROUPS } from '../landing.js'
+import { ALIASES, HOME_SEO, applyHead } from '../seo.js'
 import { CATEGORIES, TOOLS, TOOLS_BY_ID } from '../tools.js'
 import SmartDrop from './SmartDrop.jsx'
 import ToolIcon from './ToolIcon.jsx'
@@ -136,16 +137,23 @@ export default function Home() {
         ))}
       </div>
 
-      <section className="size-links" aria-labelledby="size-title">
-        <h2 id="size-title">Compress a PDF to an exact size</h2>
-        <p>Upload portals often cap files at a few hundred KB. Pick a limit and PDFwise keeps the best quality that fits.</p>
-        <div className="size-links-row">
-          {SIZE_TARGETS.map((s) => (
-            <Link key={s.slug} to={`/compress-pdf-to-${s.slug}`} className="chip chip-lg">
-              Under {s.label}
-            </Link>
-          ))}
-        </div>
+      <section className="size-links" aria-labelledby="tasks-title">
+        <h2 id="tasks-title">Made for the job you’re doing</h2>
+        <p>Each one opens the right tool, already set up — just add your files.</p>
+        {LANDING_GROUPS.map((g) => (
+          <div key={g.id} className="task-group">
+            <h3>{g.label}</h3>
+            <div className="size-links-row">
+              {Object.entries(ALIASES)
+                .filter(([, a]) => a.group === g.id)
+                .map(([id, a]) => (
+                  <Link key={id} to={`/${id}`} className="chip chip-lg">
+                    {a.name}
+                  </Link>
+                ))}
+            </div>
+          </div>
+        ))}
       </section>
 
       <section className="features">

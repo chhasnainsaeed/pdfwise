@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { analyzeFiles, findUrl } from '../lib/analyze.js'
 import { uid } from '../lib/files.js'
 import { EXCITE, openPalette } from '../lib/events.js'
+import { bucket, track } from '../lib/analytics.js'
 import { handOff } from '../lib/handoff.js'
 import { PWA_EVENT, takeIncoming } from '../lib/pwa.js'
 import { TOOLS_BY_ID } from '../tools.js'
@@ -30,6 +31,7 @@ export default function SmartDrop() {
     excite(true)
     try {
       const result = await analyzeFiles(list)
+      track('Smart drop', { kind: result.kind ?? 'unsupported', files: bucket(Array.from(list).length), best: result.picks[0]?.id })
       setState(result.kind ? { phase: 'done', ...result } : { phase: 'error', message: 'PDFwise can’t work with that file type. Try a PDF, image or Office document.' })
     } catch (e) {
       console.error(e)
@@ -121,7 +123,8 @@ export default function SmartDrop() {
   const open = (id) => {
     const tool = TOOLS_BY_ID[id]
     const files = tool.multiple ? state.files : state.files.slice(0, 1)
-    handOff(id, files.map((file) => ({ id: uid(), file })))
+    track('Smart drop pick', { tool: id, rank: state.picks.findIndex((p) => p.id === id) + 1 })
+    handOff(id, files.map((file) => ({ id: uid(), file })), { source: 'smart-drop' })
     navigate(`/${id}`)
   }
 
