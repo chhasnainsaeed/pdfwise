@@ -14,7 +14,7 @@ export default function DoneStage({ tool, result, onBack, onRestart }) {
   const label =
     result.count > 1
       ? `ZIP (${result.count} files)`
-      : { pdf: 'PDF', png: 'PNG', jpg: 'JPG', docx: 'Word file', txt: 'text file' }[ext] ?? 'file'
+      : ({ pdf: 'PDF', png: 'PNG', jpg: 'JPG', docx: 'Word file', txt: 'text file' }[ext] ?? 'file')
   const related = isPdf ? tool.related.map((id) => TOOLS_BY_ID[id]).filter(Boolean) : []
 
   const continueWith = (id) => {

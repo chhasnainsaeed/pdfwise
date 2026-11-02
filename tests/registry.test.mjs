@@ -14,7 +14,19 @@ const KIND_IDS = [...Object.keys(KINDS), 'url']
 
 test('every tool has the required fields', () => {
   for (const t of TOOLS) {
-    for (const key of ['id', 'name', 'category', 'color', 'icon', 'component', 'kind', 'description', 'action', 'processing', 'done']) {
+    for (const key of [
+      'id',
+      'name',
+      'category',
+      'color',
+      'icon',
+      'component',
+      'kind',
+      'description',
+      'action',
+      'processing',
+      'done',
+    ]) {
       assert.ok(t[key], `${t.id ?? t.name}: missing ${key}`)
     }
     assert.match(t.id, /^[a-z0-9]+(-[a-z0-9]+)*$/, `${t.id}: id must be lowercase-with-dashes`)
@@ -35,7 +47,10 @@ test('categories, kinds, icons, screens and related tools all exist', () => {
     assert.ok(categories.includes(t.category), `${t.id}: unknown category ${t.category}`)
     assert.ok(KIND_IDS.includes(t.kind), `${t.id}: unknown kind ${t.kind}`)
     assert.ok(ICONS[t.icon], `${t.id}: icon ${t.icon} is not listed in src/components/icons.js`)
-    assert.ok(existsSync(new URL(`../src/tools/${t.component}.jsx`, import.meta.url)), `${t.id}: src/tools/${t.component}.jsx is missing`)
+    assert.ok(
+      existsSync(new URL(`../src/tools/${t.component}.jsx`, import.meta.url)),
+      `${t.id}: src/tools/${t.component}.jsx is missing`,
+    )
     for (const r of t.related) assert.ok(TOOLS_BY_ID[r], `${t.id}: related tool ${r} doesn't exist`)
   }
 })
@@ -43,12 +58,19 @@ test('categories, kinds, icons, screens and related tools all exist', () => {
 test('every page has a unique, sensibly sized title and description', () => {
   const pages = allPages()
   const titles = pages.map((p) => p.seo.title)
-  assert.equal(new Set(titles).size, titles.length, `duplicate titles: ${titles.filter((t, i) => titles.indexOf(t) !== i)}`)
+  assert.equal(
+    new Set(titles).size,
+    titles.length,
+    `duplicate titles: ${titles.filter((t, i) => titles.indexOf(t) !== i)}`,
+  )
   const descriptions = pages.map((p) => p.seo.description)
   assert.equal(new Set(descriptions).size, descriptions.length, 'duplicate descriptions')
   for (const p of pages) {
     assert.ok(p.seo.title.length <= 70, `${p.path}: title is ${p.seo.title.length} chars (keep it ≤ 70)`)
-    assert.ok(p.seo.description.length >= 70 && p.seo.description.length <= 170, `${p.path}: description is ${p.seo.description.length} chars (aim for 70–170)`)
+    assert.ok(
+      p.seo.description.length >= 70 && p.seo.description.length <= 170,
+      `${p.path}: description is ${p.seo.description.length} chars (aim for 70–170)`,
+    )
   }
 })
 
@@ -77,19 +99,29 @@ test('landing-page workflow presets are valid workflows', () => {
   for (const p of LANDING_PAGES.filter((x) => x.preset.workflow)) {
     assert.equal(p.tool, 'pdf-workflows', `${p.slug}: workflow presets need tool: 'pdf-workflows'`)
     const clean = sanitizeSteps(p.preset.workflow)
-    assert.deepEqual(clean, p.preset.workflow.map((s) => ({ type: s.type, opts: { ...clean.find((c) => c.type === s.type).opts } })), `${p.slug}: preset has unknown steps or option values`)
+    assert.deepEqual(
+      clean,
+      p.preset.workflow.map((s) => ({ type: s.type, opts: { ...clean.find((c) => c.type === s.type).opts } })),
+      `${p.slug}: preset has unknown steps or option values`,
+    )
     for (const [i, s] of p.preset.workflow.entries()) {
-      for (const [k, v] of Object.entries(s.opts)) assert.equal(clean[i].opts[k], v, `${p.slug}: step ${s.type} option ${k}=${v} isn't allowed`)
+      for (const [k, v] of Object.entries(s.opts))
+        assert.equal(clean[i].opts[k], v, `${p.slug}: step ${s.type} option ${k}=${v} isn't allowed`)
     }
-    const sample = clean[0].type === 'images-to-pdf' ? new File(['x'], 'a.jpg', { type: 'image/jpeg' }) : new File(['x'], 'a.pdf', { type: 'application/pdf' })
+    const sample =
+      clean[0].type === 'images-to-pdf'
+        ? new File(['x'], 'a.jpg', { type: 'image/jpeg' })
+        : new File(['x'], 'a.pdf', { type: 'application/pdf' })
     assert.equal(checkWorkflow(clean, [sample, sample]), null, `${p.slug}: preset doesn't run as-is`)
   }
 })
 
 test('size presets are within a sensible range', () => {
   for (const p of LANDING_PAGES) {
-    if (p.preset.target) assert.ok(p.preset.target >= 10 * 1024 && p.preset.target <= 50 * 1024 * 1024, `${p.slug}: odd target size`)
-    if (p.preset.level) assert.ok(['low', 'recommended', 'extreme'].includes(p.preset.level), `${p.slug}: unknown level`)
+    if (p.preset.target)
+      assert.ok(p.preset.target >= 10 * 1024 && p.preset.target <= 50 * 1024 * 1024, `${p.slug}: odd target size`)
+    if (p.preset.level)
+      assert.ok(['low', 'recommended', 'extreme'].includes(p.preset.level), `${p.slug}: unknown level`)
   }
 })
 

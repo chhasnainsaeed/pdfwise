@@ -99,7 +99,9 @@ export default function Split() {
                   className={`page-tile ${g === undefined ? 'is-dim' : 'is-grouped'}`}
                   style={color ? { '--g': color } : undefined}
                 >
-                  {first && mode !== 'all' && <span className="group-tag">{mode === 'ranges' ? `Range ${g + 1}` : `File ${g + 1}`}</span>}
+                  {first && mode !== 'all' && (
+                    <span className="group-tag">{mode === 'ranges' ? `Range ${g + 1}` : `File ${g + 1}`}</span>
+                  )}
                   <div className="page-frame">
                     <PageThumb file={item.file} page={i + 1} size={150} />
                   </div>
@@ -131,14 +133,31 @@ export default function Split() {
                     <span className="range-name">Range {i + 1}</span>
                     <label>
                       from
-                      <NumberInput value={r.from} min={1} max={count} onChange={(v) => setRange(r.id, 'from', v)} aria-label={`Range ${i + 1} first page`} />
+                      <NumberInput
+                        value={r.from}
+                        min={1}
+                        max={count}
+                        onChange={(v) => setRange(r.id, 'from', v)}
+                        aria-label={`Range ${i + 1} first page`}
+                      />
                     </label>
                     <label>
                       to
-                      <NumberInput value={r.to} min={1} max={count} onChange={(v) => setRange(r.id, 'to', v)} aria-label={`Range ${i + 1} last page`} />
+                      <NumberInput
+                        value={r.to}
+                        min={1}
+                        max={count}
+                        onChange={(v) => setRange(r.id, 'to', v)}
+                        aria-label={`Range ${i + 1} last page`}
+                      />
                     </label>
                     {ranges.length > 1 && (
-                      <button type="button" className="mini-btn" title="Remove range" onClick={() => setRanges((l) => l.filter((x) => x.id !== r.id))}>
+                      <button
+                        type="button"
+                        className="mini-btn"
+                        title="Remove range"
+                        onClick={() => setRanges((l) => l.filter((x) => x.id !== r.id))}
+                      >
                         <X size={15} />
                       </button>
                     )}

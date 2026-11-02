@@ -36,7 +36,10 @@ export function registerServiceWorker() {
         if (e.data?.type === 'OFFLINE_READY' && firstInstall) emit('offline-ready')
       })
       // Look for a new version when the app comes back to the foreground.
-      document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && reg.update().catch(() => {}))
+      document.addEventListener(
+        'visibilitychange',
+        () => document.visibilityState === 'visible' && reg.update().catch(() => {}),
+      )
     } catch (e) {
       console.warn('Service worker registration failed', e)
     }
@@ -77,9 +80,12 @@ export async function promptInstall() {
 }
 
 export const isStandalone = () =>
-  window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: window-controls-overlay)').matches || navigator.standalone === true
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+  navigator.standalone === true
 
-export const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+export const isIos = () =>
+  /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
 // --- Files arriving from outside the page ---
 

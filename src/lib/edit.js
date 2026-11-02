@@ -30,7 +30,8 @@ export async function applyEdits(file, elements) {
   }
   const images = new Map()
   const image = async (src) => {
-    if (!images.has(src)) images.set(src, src.startsWith('data:image/png') ? await pdf.embedPng(src) : await pdf.embedJpg(src))
+    if (!images.has(src))
+      images.set(src, src.startsWith('data:image/png') ? await pdf.embedPng(src) : await pdf.embedJpg(src))
     return images.get(src)
   }
 

@@ -20,19 +20,45 @@ function toolSeo(t) {
   let title = `${t.name} — ${suffix} | ${BRAND}`
   if (title.length > 62) title = `${t.name} Online Free | ${BRAND}`
   const description = `${t.description} ${local ? 'Runs in your browser — files never leave your device.' : 'Files are deleted right after conversion.'} Free, no sign-up.`
-  const noun = t.kind === 'url' ? 'web page' : t.kind === 'any' ? 'PDFs or images' : t.kind === 'image' ? 'images' : t.kind === 'pdf' ? `PDF ${plural(t)}` : `${t.kind === 'word' ? 'Word' : t.kind === 'excel' ? 'Excel' : 'PowerPoint'} ${plural(t)}`
+  const noun =
+    t.kind === 'url'
+      ? 'web page'
+      : t.kind === 'any'
+        ? 'PDFs or images'
+        : t.kind === 'image'
+          ? 'images'
+          : t.kind === 'pdf'
+            ? `PDF ${plural(t)}`
+            : `${t.kind === 'word' ? 'Word' : t.kind === 'excel' ? 'Excel' : 'PowerPoint'} ${plural(t)}`
   const steps =
     t.steps ??
     (t.kind === 'url'
-      ? ['Paste the address of the web page.', 'Choose page size, orientation and margins.', `Click “${t.action}” and download your PDF.`]
-      : [`Select or drop your ${noun} — or paste them with Ctrl+V.`, 'Adjust the options in the side panel.', `Click “${t.action}” and download the result.`])
+      ? [
+          'Paste the address of the web page.',
+          'Choose page size, orientation and margins.',
+          `Click “${t.action}” and download your PDF.`,
+        ]
+      : [
+          `Select or drop your ${noun} — or paste them with Ctrl+V.`,
+          'Adjust the options in the side panel.',
+          `Click “${t.action}” and download the result.`,
+        ])
   const faq = [
     [`Is ${t.name} free?`, `Yes. ${BRAND} is free with no sign-up, no watermark on your files and no daily limits.`],
     local
-      ? ['Are my files uploaded?', `No. ${t.name} runs entirely in your browser, so your files never leave your device.`]
-      : ['Are my files uploaded?', 'Yes — this conversion needs a server. Files are processed in a temporary folder and deleted as soon as the PDF is ready.'],
+      ? [
+          'Are my files uploaded?',
+          `No. ${t.name} runs entirely in your browser, so your files never leave your device.`,
+        ]
+      : [
+          'Are my files uploaded?',
+          'Yes — this conversion needs a server. Files are processed in a temporary folder and deleted as soon as the PDF is ready.',
+        ],
     ...(t.faq ?? []),
-    ['Does it work on phones?', `Yes. ${BRAND} works in any modern browser on Android, iPhone, Windows, Mac and Linux.`],
+    [
+      'Does it work on phones?',
+      `Yes. ${BRAND} works in any modern browser on Android, iPhone, Windows, Mac and Linux.`,
+    ],
   ]
   return { title, description, keywords: t.keywords ?? [], steps, faq }
 }
@@ -56,7 +82,10 @@ function landingFaq(page, tool) {
     ['Is it free?', `Yes. ${BRAND} is free with no sign-up, no watermark on your files and no daily limits.`],
     local
       ? ['Are my files uploaded?', 'No. Everything runs in your browser, so your files never leave your device.']
-      : ['Are my files uploaded?', 'Yes — this conversion needs a server. Files are deleted as soon as the result is ready.'],
+      : [
+          'Are my files uploaded?',
+          'Yes — this conversion needs a server. Files are deleted as soon as the result is ready.',
+        ],
   ]
 }
 
@@ -105,7 +134,13 @@ export function allPages() {
   return [
     { path: '/', name: BRAND, seo: HOME_SEO },
     ...TOOLS.map((t) => ({ path: `/${t.id}`, name: t.name, tool: t, seo: TOOL_SEO[t.id] })),
-    ...Object.entries(ALIASES).map(([id, a]) => ({ path: `/${id}`, name: a.name, tool: TOOLS_BY_ID[a.tool], seo: a.seo, slug: id })),
+    ...Object.entries(ALIASES).map(([id, a]) => ({
+      path: `/${id}`,
+      name: a.name,
+      tool: TOOLS_BY_ID[a.tool],
+      seo: a.seo,
+      slug: id,
+    })),
   ]
 }
 

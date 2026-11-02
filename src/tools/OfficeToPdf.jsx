@@ -89,7 +89,10 @@ export default function OfficeToPdf() {
         <span>
           Using the built-in converter (LibreOffice isn’t installed on the server). Fonts, colors, tables, images,
           charts and cell styles carry over; complex layouts can differ slightly from Office. Supports{' '}
-          {status.formats.map((f) => (status.notes?.[f] ? `${f.toUpperCase()} (${status.notes[f]})` : f.toUpperCase())).join(', ')}.
+          {status.formats
+            .map((f) => (status.notes?.[f] ? `${f.toUpperCase()} (${status.notes[f]})` : f.toUpperCase()))
+            .join(', ')}
+          .
         </span>
       </div>
     )
@@ -98,7 +101,8 @@ export default function OfficeToPdf() {
   let hint = null
   if (!status) hint = 'Checking the server…'
   else if (!status.ok || !status.engine) hint = 'The conversion server isn’t ready.'
-  else if (unsupported.length) hint = `“${unsupported[0].file.name}” needs LibreOffice on the server. Remove it to continue.`
+  else if (unsupported.length)
+    hint = `“${unsupported[0].file.name}” needs LibreOffice on the server. Remove it to continue.`
 
   return (
     <ToolLayout
@@ -124,8 +128,8 @@ export default function OfficeToPdf() {
             </button>
           )}
           <p className="side-text small">
-            Unlike most tools, this one sends your files to your PDFwise server. They’re converted in a temporary
-            folder (or in memory) and discarded as soon as the PDF is sent back.
+            Unlike most tools, this one sends your files to your PDFwise server. They’re converted in a temporary folder
+            (or in memory) and discarded as soon as the PDF is sent back.
           </p>
         </>
       }

@@ -47,13 +47,22 @@ const fail = (msg) => {
 
 const name = positional[0] || (await ask('Tool name, e.g. “Grayscale PDF”'))
 if (!name) fail('Give the tool a name: npm run new-tool -- "Grayscale PDF"')
-const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-const component = name.replace(/[^A-Za-z0-9]+/g, ' ').trim().split(/\s+/).map((w) => w[0].toUpperCase() + w.slice(1)).join('')
+const id = name
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '')
+const component = name
+  .replace(/[^A-Za-z0-9]+/g, ' ')
+  .trim()
+  .split(/\s+/)
+  .map((w) => w[0].toUpperCase() + w.slice(1))
+  .join('')
 const categoryIds = CATEGORIES.map((c) => c.id)
 const category = flags.category || (await ask(`Category [${categoryIds.join(', ')}]`, 'edit'))
 const kind = flags.kind || (await ask('Accepts [pdf, image, any]', 'pdf'))
 const icon = flags.icon || (await ask('lucide-react icon name (https://lucide.dev/icons)', 'FileText'))
-const description = flags.description || (await ask('One-sentence description', `${name} — describe what it does in one sentence.`))
+const description =
+  flags.description || (await ask('One-sentence description', `${name} — describe what it does in one sentence.`))
 const multiple = Boolean(flags.multiple)
 const color = flags.color || '#5b6cff'
 rl?.close()
@@ -63,10 +72,13 @@ if (!id || !/^[A-Z]/.test(component)) fail(`“${name}” doesn't make a usable 
 if (TOOLS.some((t) => t.id === id)) fail(`A tool with id “${id}” already exists.`)
 if (LANDING_PAGES.some((p) => p.slug === id)) fail(`“/${id}” is already a landing page in src/landing.js.`)
 if (existsSync(rel(`src/tools/${component}.jsx`))) fail(`src/tools/${component}.jsx already exists.`)
-if (!categoryIds.includes(category)) fail(`Unknown category “${category}”. Use one of: ${categoryIds.join(', ')} (or add one to CATEGORIES).`)
-if (!['pdf', 'image', 'any'].includes(kind)) fail(`Unknown kind “${kind}”. Use pdf, image or any (Office kinds need the server).`)
+if (!categoryIds.includes(category))
+  fail(`Unknown category “${category}”. Use one of: ${categoryIds.join(', ')} (or add one to CATEGORIES).`)
+if (!['pdf', 'image', 'any'].includes(kind))
+  fail(`Unknown kind “${kind}”. Use pdf, image or any (Office kinds need the server).`)
 if (!/^#[0-9a-f]{6}$/i.test(color)) fail(`--color must look like #5b6cff.`)
-if (typeof lucide[icon] !== 'object' && typeof lucide[icon] !== 'function') fail(`“${icon}” isn't a lucide-react icon. Browse https://lucide.dev/icons and use the PascalCase name.`)
+if (typeof lucide[icon] !== 'object' && typeof lucide[icon] !== 'function')
+  fail(`“${icon}” isn't a lucide-react icon. Browse https://lucide.dev/icons and use the PascalCase name.`)
 
 // --- The tool's registry entry ---
 const q = (s) => `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
@@ -161,8 +173,14 @@ if (!iconListed) {
   const names = [...iconsSrc.matchAll(/^ {2}(\w+),$/gm)].map((m) => m[1])
   const all = [...new Set([...names, icon])].sort()
   iconsSrc = iconsSrc
-    .replace(/import \{\n[\s\S]*?\n\} from 'lucide-react'/, `import {\n${all.map((n) => `  ${n},`).join('\n')}\n} from 'lucide-react'`)
-    .replace(/export const ICONS = \{\n[\s\S]*?\n\}/, `export const ICONS = {\n${all.map((n) => `  ${n},`).join('\n')}\n}`)
+    .replace(
+      /import \{\n[\s\S]*?\n\} from 'lucide-react'/,
+      `import {\n${all.map((n) => `  ${n},`).join('\n')}\n} from 'lucide-react'`,
+    )
+    .replace(
+      /export const ICONS = \{\n[\s\S]*?\n\}/,
+      `export const ICONS = {\n${all.map((n) => `  ${n},`).join('\n')}\n}`,
+    )
 }
 
 if (flags['dry-run']) {

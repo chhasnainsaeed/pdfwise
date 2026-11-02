@@ -46,12 +46,12 @@ export default function Repair() {
       sidebar={
         <>
           <p className="side-text">
-            Repair rebuilds a PDF’s internal structure: broken cross-reference tables, wrong offsets, truncated
-            streams and other damage that stops files from opening.
+            Repair rebuilds a PDF’s internal structure: broken cross-reference tables, wrong offsets, truncated streams
+            and other damage that stops files from opening.
           </p>
           <p className="side-text small">
-            Files that show “Could not read file” here are exactly what this tool is for. Content that is truly
-            missing from a file can’t be brought back.
+            Files that show “Could not read file” here are exactly what this tool is for. Content that is truly missing
+            from a file can’t be brought back.
           </p>
         </>
       }

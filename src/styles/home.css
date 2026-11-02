@@ -129,7 +129,9 @@
 
 .tool-card:hover {
   transform: rotateX(var(--rx)) rotateY(var(--ry)) translateZ(14px);
-  box-shadow: 0 22px 40px -18px color-mix(in srgb, var(--c) 55%, transparent), var(--shadow);
+  box-shadow:
+    0 22px 40px -18px color-mix(in srgb, var(--c) 55%, transparent),
+    var(--shadow);
   border-color: color-mix(in srgb, var(--c) 45%, var(--line));
 }
 
@@ -151,7 +153,11 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(420px circle at var(--gx) var(--gy), color-mix(in srgb, var(--c) 14%, transparent), transparent 45%);
+  background: radial-gradient(
+    420px circle at var(--gx) var(--gy),
+    color-mix(in srgb, var(--c) 14%, transparent),
+    transparent 45%
+  );
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;

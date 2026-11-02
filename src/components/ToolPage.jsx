@@ -61,7 +61,13 @@ function ToolSession({ tool, alias, slug }) {
   useEffect(() => {
     clearHandoff()
     rememberTool(tool.id)
-    if (incoming?.items?.length) track('Files added', { tool: tool.id, page: slug, files: bucket(incoming.items.length), via: incoming.source ?? 'handoff' })
+    if (incoming?.items?.length)
+      track('Files added', {
+        tool: tool.id,
+        page: slug,
+        files: bucket(incoming.items.length),
+        via: incoming.source ?? 'handoff',
+      })
     // Once per session: `incoming` is captured on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tool.id])
@@ -76,8 +82,10 @@ function ToolSession({ tool, alias, slug }) {
     (list, via = 'picker') => {
       const all = Array.from(list)
       const ok = all.filter((f) => matchesKind(f, tool.kind))
-      if (ok.length < all.length) setError(`Skipped ${all.length - ok.length} file(s) — ${tool.name} only accepts ${KINDS[tool.kind].noun}.`)
-      else if (!tool.multiple && ok.length > 1) setError(`${tool.name} works on one file at a time, so only “${ok[0].name}” was added.`)
+      if (ok.length < all.length)
+        setError(`Skipped ${all.length - ok.length} file(s) — ${tool.name} only accepts ${KINDS[tool.kind].noun}.`)
+      else if (!tool.multiple && ok.length > 1)
+        setError(`${tool.name} works on one file at a time, so only “${ok[0].name}” was added.`)
       else setError('')
       if (!ok.length) return
       track('Files added', { tool: tool.id, page: slug, files: bucket(ok.length), via })
@@ -134,8 +142,24 @@ function ToolSession({ tool, alias, slug }) {
   }
 
   const Workspace = TOOL_COMPONENTS[tool.id]
-  const preset = { target: alias?.target, level: alias?.level, workflow: alias?.workflow, name: alias?.name, url: incoming?.url }
-  const ctx = { tool, files, setFiles, addFiles, run, error, setError, preset, accept: usesFiles ? acceptFor(tool.kind) : '' }
+  const preset = {
+    target: alias?.target,
+    level: alias?.level,
+    workflow: alias?.workflow,
+    name: alias?.name,
+    url: incoming?.url,
+  }
+  const ctx = {
+    tool,
+    files,
+    setFiles,
+    addFiles,
+    run,
+    error,
+    setError,
+    preset,
+    accept: usesFiles ? acceptFor(tool.kind) : '',
+  }
 
   return (
     <SessionContext.Provider value={ctx}>
@@ -153,7 +177,9 @@ function ToolSession({ tool, alias, slug }) {
         </div>
       )}
       {stage === 'processing' && <ProcessingOverlay tool={tool} progress={progress} />}
-      {stage === 'done' && result && <DoneStage tool={tool} result={result} onBack={() => setStage('work')} onRestart={restart} />}
+      {stage === 'done' && result && (
+        <DoneStage tool={tool} result={result} onBack={() => setStage('work')} onRestart={restart} />
+      )}
       {dropping && (
         <div className="drop-overlay">
           <div className="drop-overlay-card">

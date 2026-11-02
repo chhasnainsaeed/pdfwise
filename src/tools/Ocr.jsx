@@ -23,7 +23,12 @@ export default function Ocr() {
       const r = await ocrPdf(item.file, { lang, skipText, output }, progress)
       const note = `Recognized ${pluralize(r.words, 'word')}.`
       if (output === 'txt') {
-        return { files: [{ name: `${base}.txt`, type: 'text/plain', data: new Blob([r.text], { type: 'text/plain;charset=utf-8' }) }], note }
+        return {
+          files: [
+            { name: `${base}.txt`, type: 'text/plain', data: new Blob([r.text], { type: 'text/plain;charset=utf-8' }) },
+          ],
+          note,
+        }
       }
       return { files: [{ name: `${base}-ocr.pdf`, type: PDF_TYPE, data: r.bytes }], note }
     })
@@ -74,12 +79,18 @@ export default function Ocr() {
             Skip pages that already have selectable text
           </Checkbox>
           <p className="side-text small">
-            OCR reads scanned pages and adds an invisible text layer, so you can search, select and copy the text.
-            The first run downloads the language model (a few MB). Your PDF never leaves your device.
+            OCR reads scanned pages and adds an invisible text layer, so you can search, select and copy the text. The
+            first run downloads the language model (a few MB). Your PDF never leaves your device.
           </p>
         </>
       }
-      hint={info?.error ? 'This file can’t be opened.' : count > 20 ? `About ${Math.ceil(count * 3 / 60)} min for ${count} pages.` : null}
+      hint={
+        info?.error
+          ? 'This file can’t be opened.'
+          : count > 20
+            ? `About ${Math.ceil((count * 3) / 60)} min for ${count} pages.`
+            : null
+      }
       disabled={!count}
       onAction={recognize}
     />

@@ -23,7 +23,15 @@ export function toPt(len, fallback = 0) {
   return { cm: v * 28.3465, mm: v * 2.83465, in: v * 72, pt: v, pc: v * 12, px: v * 0.75 }[m[2] ?? 'pt']
 }
 
-const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', svg: 'image/svg+xml', webp: 'image/webp' }
+const MIME = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  bmp: 'image/bmp',
+  svg: 'image/svg+xml',
+  webp: 'image/webp',
+}
 
 /** Data URI for an image inside a zip (null for formats browsers can't show, like EMF/WMF). */
 export async function zipImage(zip, path) {

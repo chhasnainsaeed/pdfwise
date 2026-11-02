@@ -94,19 +94,28 @@ app.post('/api/convert/pdf', express.raw({ type: () => true, limit: `${MAX_UPLOA
   const ext = path.extname(name).slice(1).toLowerCase()
   const engine = officeEngine()
   if (!engine.name) {
-    return res.status(503).json({ error: 'No converter is available: install LibreOffice, or Chrome/Edge for the built-in converter.' })
+    return res
+      .status(503)
+      .json({ error: 'No converter is available: install LibreOffice, or Chrome/Edge for the built-in converter.' })
   }
   if (!engine.formats.includes(ext)) {
-    const extra = engine.name === 'builtin' && LIBREOFFICE_FORMATS.includes(ext) ? ' It needs LibreOffice on the server.' : ''
-    return res.status(415).json({ error: `.${ext || '?'} files can’t be converted here.${extra} Supported: ${engine.formats.join(', ')}.` })
+    const extra =
+      engine.name === 'builtin' && LIBREOFFICE_FORMATS.includes(ext) ? ' It needs LibreOffice on the server.' : ''
+    return res
+      .status(415)
+      .json({ error: `.${ext || '?'} files can’t be converted here.${extra} Supported: ${engine.formats.join(', ')}.` })
   }
   if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: 'The file is empty.' })
   const started = Date.now()
   try {
     const title = path.basename(name, path.extname(name)).slice(0, 200)
     const pdf =
-      engine.name === 'libreoffice' ? await libreofficeToPdf(req.body, ext) : await renderPdf(await officeDocument(req.body, ext), { title })
-    console.log(`[convert] .${ext} ${(req.body.length / 1024).toFixed(0)} KB → PDF via ${engine.name} in ${Date.now() - started} ms`)
+      engine.name === 'libreoffice'
+        ? await libreofficeToPdf(req.body, ext)
+        : await renderPdf(await officeDocument(req.body, ext), { title })
+    console.log(
+      `[convert] .${ext} ${(req.body.length / 1024).toFixed(0)} KB → PDF via ${engine.name} in ${Date.now() - started} ms`,
+    )
     res.type('application/pdf').send(pdf)
   } catch (e) {
     if (!(e instanceof HttpError)) console.error('[convert]', e)
@@ -145,7 +154,8 @@ app.post('/api/convert/url', express.json({ limit: '16kb' }), async (req, res) =
 app.post('/share-target', (req, res) => res.redirect(303, '/'))
 
 app.use((err, req, res, next) => {
-  if (err?.type === 'entity.too.large') return res.status(413).json({ error: `Files up to ${MAX_UPLOAD_MB} MB can be converted.` })
+  if (err?.type === 'entity.too.large')
+    return res.status(413).json({ error: `Files up to ${MAX_UPLOAD_MB} MB can be converted.` })
   if (err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'The request wasn’t valid JSON.' })
   next(err)
 })
@@ -161,21 +171,28 @@ if (existsSync(dist)) {
         const name = path.basename(file)
         // Hashed build files never change; the service worker and manifest must be re-checked so
         // updates reach installed apps.
-        if (file.includes(`${path.sep}assets${path.sep}`)) res.set('Cache-Control', 'public, max-age=31536000, immutable')
-        else if (name === 'sw.js' || name === 'manifest.webmanifest' || name.endsWith('.html')) res.set('Cache-Control', 'no-cache')
+        if (file.includes(`${path.sep}assets${path.sep}`))
+          res.set('Cache-Control', 'public, max-age=31536000, immutable')
+        else if (name === 'sw.js' || name === 'manifest.webmanifest' || name.endsWith('.html'))
+          res.set('Cache-Control', 'no-cache')
       },
     }),
   )
   const notFound = existsSync(path.join(dist, '404.html')) ? path.join(dist, '404.html') : path.join(dist, 'index.html')
-  app.get('*', (req, res, next) => (req.path.startsWith('/api/') ? next() : res.status(404).set('Cache-Control', 'no-cache').sendFile(notFound)))
+  app.get('*', (req, res, next) =>
+    req.path.startsWith('/api/') ? next() : res.status(404).set('Cache-Control', 'no-cache').sendFile(notFound),
+  )
 }
 
 app.listen(PORT, HOST, () => {
   const engine = officeEngine()
   console.log(`PDFwise server listening on http://${HOST}:${PORT}`)
-  console.log(`Office converter: ${engine.name ?? 'none'}${engine.name === 'builtin' ? ' (LibreOffice not found — using Chrome/Edge)' : ''}`)
+  console.log(
+    `Office converter: ${engine.name ?? 'none'}${engine.name === 'builtin' ? ' (LibreOffice not found — using Chrome/Edge)' : ''}`,
+  )
   console.log(`Browser for URL → PDF: ${findBrowser() ?? 'not found'}`)
   if (BASIC_AUTH) console.log('Password protection: on')
-  if (HOST !== '127.0.0.1' && HOST !== 'localhost' && !BASIC_AUTH) console.warn('Warning: listening beyond localhost without BASIC_AUTH.')
+  if (HOST !== '127.0.0.1' && HOST !== 'localhost' && !BASIC_AUTH)
+    console.warn('Warning: listening beyond localhost without BASIC_AUTH.')
   if (existsSync(dist)) console.log(`Serving the app from ${dist}`)
 })

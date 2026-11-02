@@ -19,7 +19,11 @@
   "shortcuts": [
     { "name": "Compress PDF", "url": "/compress-pdf", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "Merge PDF", "url": "/merge-pdf", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "PDF Workflows", "url": "/pdf-workflows", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    {
+      "name": "PDF Workflows",
+      "url": "/pdf-workflows",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
     { "name": "Sign PDF", "url": "/sign-pdf", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
   ],
   "share_target": {
@@ -33,7 +37,17 @@
       "files": [
         {
           "name": "files",
-          "accept": ["application/pdf", ".pdf", "image/jpeg", "image/png", "image/webp", ".jpg", ".jpeg", ".png", ".webp"]
+          "accept": [
+            "application/pdf",
+            ".pdf",
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+          ]
         }
       ]
     }

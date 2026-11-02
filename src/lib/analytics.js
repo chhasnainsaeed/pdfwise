@@ -17,12 +17,18 @@ export function initAnalytics() {
     window.plausible ??= function (...args) {
       ;(window.plausible.q = window.plausible.q || []).push(args)
     }
-    addScript(env.VITE_PLAUSIBLE_SRC || 'https://plausible.io/js/script.js', { 'data-domain': env.VITE_PLAUSIBLE_DOMAIN })
+    addScript(env.VITE_PLAUSIBLE_SRC || 'https://plausible.io/js/script.js', {
+      'data-domain': env.VITE_PLAUSIBLE_DOMAIN,
+    })
   } else if (env.VITE_UMAMI_WEBSITE_ID) {
     provider = 'umami'
-    addScript(env.VITE_UMAMI_SRC || 'https://cloud.umami.is/script.js', { 'data-website-id': env.VITE_UMAMI_WEBSITE_ID }, () => {
-      while (queue.length) send(...queue.shift())
-    })
+    addScript(
+      env.VITE_UMAMI_SRC || 'https://cloud.umami.is/script.js',
+      { 'data-website-id': env.VITE_UMAMI_WEBSITE_ID },
+      () => {
+        while (queue.length) send(...queue.shift())
+      },
+    )
   }
 }
 

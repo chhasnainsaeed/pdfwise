@@ -39,24 +39,24 @@ Vercel and Cloudflare Pages do the same with clean URLs.
 [server/index.js](server/index.js) is a small Express server with two Office converters:
 
 - **LibreOffice** (best fidelity, every format) when it's installed: `winget install
-  TheDocumentFoundation.LibreOffice`, `brew install --cask libreoffice`, or `apt install
-  libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress`. Set `SOFFICE_PATH` if it's
+TheDocumentFoundation.LibreOffice`, `brew install --cask libreoffice`, or `apt install
+libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress`. Set `SOFFICE_PATH` if it's
   somewhere unusual.
 - **Built-in converter**, used automatically otherwise. It needs nothing beyond `npm install` and a
   Chrome or Edge browser (Edge ships with Windows). Documents are turned into HTML
   ([server/office/](server/office)) and printed to PDF by that browser through
   [puppeteer-core](https://pptr.dev/):
 
-  | Format | How | What carries over |
-  | --- | --- | --- |
-  | DOCX | [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) inside the print page | Fonts, sizes, colors, alignment, tables, images, page size/margins, page breaks |
-  | DOC (97–2003) | [word-extractor](https://github.com/morungos/node-word-extractor) | Text only |
-  | ODT | built-in OpenDocument reader | Styles, headings, lists, tables, images, page size |
-  | RTF | built-in RTF reader | Fonts, colors, styles, alignment, tables, PNG/JPEG pictures, page size |
-  | XLSX | [ExcelJS](https://github.com/exceljs/exceljs) styles + [SheetJS](https://sheetjs.com/) number formats | Fonts, fills, borders, alignment, merged cells, widths/heights, orientation |
-  | XLS, ODS, CSV | SheetJS | Values and formatting, one section per sheet |
-  | PPTX | built-in renderer | Layouts/masters, theme colors, text, shapes, pictures, tables, charts (bar/column/line/area/pie/doughnut/scatter), SmartArt |
-  | ODP | built-in renderer | Text frames, shapes, images, backgrounds |
+  | Format        | How                                                                                                   | What carries over                                                                                                           |
+  | ------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+  | DOCX          | [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) inside the print page                     | Fonts, sizes, colors, alignment, tables, images, page size/margins, page breaks                                             |
+  | DOC (97–2003) | [word-extractor](https://github.com/morungos/node-word-extractor)                                     | Text only                                                                                                                   |
+  | ODT           | built-in OpenDocument reader                                                                          | Styles, headings, lists, tables, images, page size                                                                          |
+  | RTF           | built-in RTF reader                                                                                   | Fonts, colors, styles, alignment, tables, PNG/JPEG pictures, page size                                                      |
+  | XLSX          | [ExcelJS](https://github.com/exceljs/exceljs) styles + [SheetJS](https://sheetjs.com/) number formats | Fonts, fills, borders, alignment, merged cells, widths/heights, orientation                                                 |
+  | XLS, ODS, CSV | SheetJS                                                                                               | Values and formatting, one section per sheet                                                                                |
+  | PPTX          | built-in renderer                                                                                     | Layouts/masters, theme colors, text, shapes, pictures, tables, charts (bar/column/line/area/pie/doughnut/scatter), SmartArt |
+  | ODP           | built-in renderer                                                                                     | Text frames, shapes, images, backgrounds                                                                                    |
 
   PPT (binary PowerPoint) needs LibreOffice.
 
@@ -69,26 +69,26 @@ your network. `ALLOW_PRIVATE_URLS=1` lifts the block (for intranet pages).
 Uploads go to a fresh temp folder (LibreOffice) or stay in memory (built-in) and are discarded after
 conversion. The server listens on 127.0.0.1 by default; set `BASIC_AUTH` before exposing it.
 
-| Setting | Default | |
-| --- | --- | --- |
-| `PORT`, `HOST` | `3001`, `127.0.0.1` | |
-| `BASIC_AUTH` | off | `user:password` — protects the app and API with HTTP Basic auth |
-| `RATE_LIMIT_PER_MIN` | `30` | conversions per client IP per minute (`0` turns it off) |
-| `TRUST_PROXY` | off | Express `trust proxy` value when running behind a reverse proxy |
-| `CONVERTER` | `auto` | `libreoffice` or `builtin` to force one |
-| `SOFFICE_PATH`, `CHROME_PATH` | auto-detected | |
-| `CHROME_NO_SANDBOX` | off | `1` launches Chromium with `--no-sandbox`, which most containers need (the [Dockerfile](Dockerfile) sets it). Leave it off elsewhere: the sandbox is what contains a hostile web page |
-| `MAX_UPLOAD_MB` | `100` | |
-| `CONVERT_TIMEOUT_S` | `120` | |
-| `CONVERT_CONCURRENCY` | `2` | parallel LibreOffice instances |
-| `BROWSER_CONCURRENCY` | `3` | parallel browser pages |
-| `ALLOW_PRIVATE_URLS` | off | let HTML → PDF fetch local-network pages |
+| Setting                       | Default             |                                                                                                                                                                                       |
+| ----------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`, `HOST`                | `3001`, `127.0.0.1` |                                                                                                                                                                                       |
+| `BASIC_AUTH`                  | off                 | `user:password` — protects the app and API with HTTP Basic auth                                                                                                                       |
+| `RATE_LIMIT_PER_MIN`          | `30`                | conversions per client IP per minute (`0` turns it off)                                                                                                                               |
+| `TRUST_PROXY`                 | off                 | Express `trust proxy` value when running behind a reverse proxy                                                                                                                       |
+| `CONVERTER`                   | `auto`              | `libreoffice` or `builtin` to force one                                                                                                                                               |
+| `SOFFICE_PATH`, `CHROME_PATH` | auto-detected       |                                                                                                                                                                                       |
+| `CHROME_NO_SANDBOX`           | off                 | `1` launches Chromium with `--no-sandbox`, which most containers need (the [Dockerfile](Dockerfile) sets it). Leave it off elsewhere: the sandbox is what contains a hostile web page |
+| `MAX_UPLOAD_MB`               | `100`               |                                                                                                                                                                                       |
+| `CONVERT_TIMEOUT_S`           | `120`               |                                                                                                                                                                                       |
+| `CONVERT_CONCURRENCY`         | `2`                 | parallel LibreOffice instances                                                                                                                                                        |
+| `BROWSER_CONCURRENCY`         | `3`                 | parallel browser pages                                                                                                                                                                |
+| `ALLOW_PRIVATE_URLS`          | off                 | let HTML → PDF fetch local-network pages                                                                                                                                              |
 
-| Endpoint | |
-| --- | --- |
-| `GET /healthz` | `ok` — liveness check for Docker and load balancers; answers even with `BASIC_AUTH` on |
-| `GET /api/health` | `{ ok, engine, formats, notes, libreoffice, browser, maxUploadMb }` |
-| `POST /api/convert/pdf` | Raw file body + `X-File-Name` header (URL-encoded) → `application/pdf`, or `{ error }` with 400/413/415/422/429/503/504 |
+| Endpoint                |                                                                                                                              |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `GET /healthz`          | `ok` — liveness check for Docker and load balancers; answers even with `BASIC_AUTH` on                                       |
+| `GET /api/health`       | `{ ok, engine, formats, notes, libreoffice, browser, maxUploadMb }`                                                          |
+| `POST /api/convert/pdf` | Raw file body + `X-File-Name` header (URL-encoded) → `application/pdf`, or `{ error }` with 400/413/415/422/429/503/504      |
 | `POST /api/convert/url` | JSON `{ url, format: "A4"\|"Letter", landscape, margin: "none"\|"small"\|"normal", background, screen }` → `application/pdf` |
 
 ## Deploy
@@ -181,30 +181,30 @@ set `SITE_URL` (plus any analytics or verification variables) as build environme
 
 ## Tools
 
-| Tool | What it does |
-| --- | --- |
-| Merge PDF | Join several PDFs; drag cards or use the arrows to order them |
-| Split PDF | Custom ranges (optionally merged), fixed-size chunks, or one file per page |
-| Remove pages / Extract pages | Click, shift-click or type page lists like `1, 3-5, 9` |
-| Organize PDF | Drag-reorder, rotate or delete individual pages, mix pages from several PDFs |
-| Compress PDF | Re-encodes embedded JPEG/raw images as smaller JPEGs; text and vectors stay intact |
-| Repair PDF | Rebuilds damaged files (qpdf, falling back to pdf-lib's object scan for broken xref tables) |
-| OCR PDF | Tesseract OCR in 22 languages (Latin, Cyrillic, Greek, Arabic, Hebrew, Indic, Thai, CJK) → searchable PDF or .txt |
-| JPG to PDF | JPG/PNG/WebP/GIF/BMP → PDF with A4/Letter/fit, orientation, margins; honors EXIF rotation |
-| Word / Excel / PowerPoint to PDF | Office documents → PDF on the server (see above) |
-| HTML to PDF | Any public web page → PDF, with page size, orientation, margins and background options |
-| PDF to JPG | Every page to JPG or PNG at 96/150/300 DPI |
-| PDF to Word | “Keep the layout” (editable positioned text over the page's graphics) or “Flowing text” |
-| PDF to PDF/A | PDF/A-2b with an sRGB output intent, XMP metadata and a preflight report |
-| Rotate PDF | Rotate whole files, one or many at once |
-| Page numbers | Six positions, formats like “Page 1 of 12”, page range, font, size, color |
-| Add watermark | Text or image (logo), centered or tiled, with angle, size and opacity |
-| Crop PDF | Drag the crop box or type margins in mm; all pages or the current one |
-| Edit PDF | Add text, images, shapes, highlights, whiteout and freehand drawing; move, resize, delete |
-| Sign PDF | Draw, type or upload a signature, then click to place, drag, resize, copy to every page |
-| Protect PDF | AES-256 password, optional no-print / no-copy / no-edit restrictions |
-| Unlock PDF | Removes passwords (with the password) and permission restrictions |
-| Redact PDF | Draw boxes or search text; marked pages are flattened and the file rebuilt, so the content is gone |
+| Tool                             | What it does                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Merge PDF                        | Join several PDFs; drag cards or use the arrows to order them                                                     |
+| Split PDF                        | Custom ranges (optionally merged), fixed-size chunks, or one file per page                                        |
+| Remove pages / Extract pages     | Click, shift-click or type page lists like `1, 3-5, 9`                                                            |
+| Organize PDF                     | Drag-reorder, rotate or delete individual pages, mix pages from several PDFs                                      |
+| Compress PDF                     | Re-encodes embedded JPEG/raw images as smaller JPEGs; text and vectors stay intact                                |
+| Repair PDF                       | Rebuilds damaged files (qpdf, falling back to pdf-lib's object scan for broken xref tables)                       |
+| OCR PDF                          | Tesseract OCR in 22 languages (Latin, Cyrillic, Greek, Arabic, Hebrew, Indic, Thai, CJK) → searchable PDF or .txt |
+| JPG to PDF                       | JPG/PNG/WebP/GIF/BMP → PDF with A4/Letter/fit, orientation, margins; honors EXIF rotation                         |
+| Word / Excel / PowerPoint to PDF | Office documents → PDF on the server (see above)                                                                  |
+| HTML to PDF                      | Any public web page → PDF, with page size, orientation, margins and background options                            |
+| PDF to JPG                       | Every page to JPG or PNG at 96/150/300 DPI                                                                        |
+| PDF to Word                      | “Keep the layout” (editable positioned text over the page's graphics) or “Flowing text”                           |
+| PDF to PDF/A                     | PDF/A-2b with an sRGB output intent, XMP metadata and a preflight report                                          |
+| Rotate PDF                       | Rotate whole files, one or many at once                                                                           |
+| Page numbers                     | Six positions, formats like “Page 1 of 12”, page range, font, size, color                                         |
+| Add watermark                    | Text or image (logo), centered or tiled, with angle, size and opacity                                             |
+| Crop PDF                         | Drag the crop box or type margins in mm; all pages or the current one                                             |
+| Edit PDF                         | Add text, images, shapes, highlights, whiteout and freehand drawing; move, resize, delete                         |
+| Sign PDF                         | Draw, type or upload a signature, then click to place, drag, resize, copy to every page                           |
+| Protect PDF                      | AES-256 password, optional no-print / no-copy / no-edit restrictions                                              |
+| Unlock PDF                       | Removes passwords (with the password) and permission restrictions                                                 |
+| Redact PDF                       | Draw boxes or search text; marked pages are flattened and the file rebuilt, so the content is gone                |
 
 Compress PDF also has a **Target size** mode: pick 100 KB to 2 MB (or type a size) and it searches
 quality settings for the sharpest result that fits.
@@ -262,7 +262,7 @@ and AI search.
 ## Installable app and offline use
 
 PDFwise is a Progressive Web App. Chrome, Edge and Android show **Install app** in the header, and on
-iPhone or iPad the button explains *Share → Add to Home Screen*. Once installed:
+iPhone or iPad the button explains _Share → Add to Home Screen_. Once installed:
 
 - **Works offline.** The service worker stores every page and built file (about 4.8 MB) after the
   first visit. With Data Saver on, or on 2G, it stores only the core (pages, main script and styles,

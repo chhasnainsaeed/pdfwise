@@ -72,7 +72,11 @@ function TiltCard({ tool }) {
 
 export default function Home() {
   const [filter, setFilter] = useState('all')
-  const [recent] = useState(() => recentTools().map((id) => TOOLS_BY_ID[id]).filter(Boolean))
+  const [recent] = useState(() =>
+    recentTools()
+      .map((id) => TOOLS_BY_ID[id])
+      .filter(Boolean),
+  )
   const tools = filter === 'all' ? TOOLS : TOOLS.filter((t) => t.category === filter)
   const idle = useIdle()
   const [with3D] = useState(canAfford3D)

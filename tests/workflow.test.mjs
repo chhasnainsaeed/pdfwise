@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { formatPageList, parsePageList } from '../src/lib/ranges.js'
-import { RECIPES, checkWorkflow, decodeWorkflow, encodeWorkflow, newStep, sanitizeSteps, stripSecrets } from '../src/lib/workflow.js'
+import {
+  RECIPES,
+  checkWorkflow,
+  decodeWorkflow,
+  encodeWorkflow,
+  newStep,
+  sanitizeSteps,
+  stripSecrets,
+} from '../src/lib/workflow.js'
 
 const pdf = new File(['x'], 'a.pdf', { type: 'application/pdf' })
 const jpg = new File(['x'], 'a.jpg', { type: 'image/jpeg' })
@@ -24,7 +32,10 @@ test('recipes are valid for their kind of input', () => {
 test('checkWorkflow explains what can’t run', () => {
   assert.match(checkWorkflow([], [pdf]), /Add at least one step/)
   assert.match(checkWorkflow([newStep('merge')], [jpg]), /start with “Images to PDF”/)
-  assert.match(checkWorkflow([newStep('protect', { password: 'x' }), newStep('rotate')], [pdf]), /has to be the last step/)
+  assert.match(
+    checkWorkflow([newStep('protect', { password: 'x' }), newStep('rotate')], [pdf]),
+    /has to be the last step/,
+  )
   assert.match(checkWorkflow([newStep('protect')], [pdf]), /enter a password/)
   assert.match(checkWorkflow([newStep('compress')], [pdf, jpg]), /not both/)
 })

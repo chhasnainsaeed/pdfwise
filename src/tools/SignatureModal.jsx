@@ -10,7 +10,8 @@ const FONTS = [
 const COLORS = ['#111827', '#1d4ed8', '#b91c1c']
 
 // The handwriting fonts are only needed here, so they load with the Sign tool instead of on every page.
-const FONTS_CSS = 'https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Dancing+Script:wght@600&family=Homemade+Apple&display=swap'
+const FONTS_CSS =
+  'https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Dancing+Script:wght@600&family=Homemade+Apple&display=swap'
 let fontsCss = null
 function signatureFonts() {
   fontsCss ??= new Promise((resolve) => {

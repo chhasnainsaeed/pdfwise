@@ -27,7 +27,11 @@ export async function findText(file, query, { caseSensitive = false, wholeWord =
       const nx = c / size
       const ny = d / size
       for (let at = hay.indexOf(needle); at !== -1; at = hay.indexOf(needle, at + needle.length)) {
-        if (wholeWord && (/[\p{L}\p{N}_]/u.test(hay[at - 1] ?? '') || /[\p{L}\p{N}_]/u.test(hay[at + needle.length] ?? ''))) continue
+        if (
+          wholeWord &&
+          (/[\p{L}\p{N}_]/u.test(hay[at - 1] ?? '') || /[\p{L}\p{N}_]/u.test(hay[at + needle.length] ?? ''))
+        )
+          continue
         const s0 = (at / len) * item.width
         const s1 = ((at + needle.length) / len) * item.width
         const corners = [
@@ -59,7 +63,12 @@ export async function findText(file, query, { caseSensitive = false, wholeWord =
  * boxes painted in, then the document is rebuilt from its pages so the original page
  * content (and anything else no longer referenced) isn't carried over.
  */
-export async function applyRedactions(file, boxes, { dpi = 200, color = '#000000', keepMetadata = false } = {}, progress) {
+export async function applyRedactions(
+  file,
+  boxes,
+  { dpi = 200, color = '#000000', keepMetadata = false } = {},
+  progress,
+) {
   const src = await PDFDocument.load(await file.arrayBuffer(), { updateMetadata: false })
   const byPage = new Map()
   for (const b of boxes) {

@@ -28,7 +28,18 @@ export const STEP_TYPES = {
     output: 'pdf',
     combine: true,
     summary: (o) => `${o.size === 'fit' ? 'Page fits each image' : o.size.toUpperCase()} pages, all images in one PDF`,
-    fields: [{ key: 'size', label: 'Page size', type: 'select', options: [{ value: 'a4', label: 'A4' }, { value: 'letter', label: 'Letter' }, { value: 'fit', label: 'Fit image' }] }],
+    fields: [
+      {
+        key: 'size',
+        label: 'Page size',
+        type: 'select',
+        options: [
+          { value: 'a4', label: 'A4' },
+          { value: 'letter', label: 'Letter' },
+          { value: 'fit', label: 'Fit image' },
+        ],
+      },
+    ],
     defaults: { size: 'a4' },
     async run(files, o, progress) {
       const { imagesToPdf } = await import('./convert.js')
@@ -84,13 +95,24 @@ export const STEP_TYPES = {
     output: 'pdf',
     summary: (o) => `${o.action === 'keep' ? 'Keep' : 'Remove'} pages ${o.pages || '…'}`,
     fields: [
-      { key: 'action', label: 'Action', type: 'select', options: [{ value: 'remove', label: 'Remove these pages' }, { value: 'keep', label: 'Keep only these pages' }] },
+      {
+        key: 'action',
+        label: 'Action',
+        type: 'select',
+        options: [
+          { value: 'remove', label: 'Remove these pages' },
+          { value: 'keep', label: 'Keep only these pages' },
+        ],
+      },
       { key: 'pages', label: 'Pages', type: 'text', placeholder: 'e.g. 1, 3-5, 9-' },
     ],
     defaults: { action: 'remove', pages: '1' },
     validate: (o) => (o.pages.trim() ? null : 'type the pages, like “1, 3-5”'),
     async each(file, o) {
-      const [{ loadPdf, buildFromPages }, { parsePageList }] = await Promise.all([import('./ops.js'), import('./ranges.js')])
+      const [{ loadPdf, buildFromPages }, { parsePageList }] = await Promise.all([
+        import('./ops.js'),
+        import('./ranges.js'),
+      ])
       const count = (await loadPdf(file)).getPageCount()
       const parsed = parsePageList(o.pages, count)
       if (parsed.error) throw new UserError(`“${file.name}”: ${parsed.error}`)
@@ -106,7 +128,19 @@ export const STEP_TYPES = {
     input: 'pdf',
     output: 'pdf',
     summary: (o) => `Turn every page ${o.deg === 180 ? 'upside down' : o.deg === 90 ? '90° right' : '90° left'}`,
-    fields: [{ key: 'deg', label: 'Rotation', type: 'select', number: true, options: [{ value: 90, label: '90° right' }, { value: 180, label: '180°' }, { value: 270, label: '90° left' }] }],
+    fields: [
+      {
+        key: 'deg',
+        label: 'Rotation',
+        type: 'select',
+        number: true,
+        options: [
+          { value: 90, label: '90° right' },
+          { value: 180, label: '180°' },
+          { value: 270, label: '90° left' },
+        ],
+      },
+    ],
     defaults: { deg: 90 },
     async each(file, o) {
       const { rotateAll } = await import('./ops.js')
@@ -156,7 +190,15 @@ export const STEP_TYPES = {
     summary: (o) => `Stamp “${o.text}” ${o.layout === 'tile' ? 'across' : 'on'} every page`,
     fields: [
       { key: 'text', label: 'Text', type: 'text', placeholder: 'CONFIDENTIAL' },
-      { key: 'layout', label: 'Layout', type: 'select', options: [{ value: 'center', label: 'Once, centered' }, { value: 'tile', label: 'Tiled' }] },
+      {
+        key: 'layout',
+        label: 'Layout',
+        type: 'select',
+        options: [
+          { value: 'center', label: 'Once, centered' },
+          { value: 'tile', label: 'Tiled' },
+        ],
+      },
     ],
     defaults: { text: 'CONFIDENTIAL', layout: 'center' },
     validate: (o) => (o.text.trim() ? null : 'type the watermark text'),
@@ -197,7 +239,10 @@ export const STEP_TYPES = {
         key: 'position',
         label: 'Position',
         type: 'select',
-        options: ['bottom-center', 'bottom-right', 'bottom-left', 'top-center', 'top-right', 'top-left'].map((v) => ({ value: v, label: v.replace('-', ' ') })),
+        options: ['bottom-center', 'bottom-right', 'bottom-left', 'top-center', 'top-right', 'top-left'].map((v) => ({
+          value: v,
+          label: v.replace('-', ' '),
+        })),
       },
     ],
     defaults: { format: 'Page {n} of {total}', position: 'bottom-center' },
@@ -223,23 +268,49 @@ export const STEP_TYPES = {
     tool: 'compress-pdf',
     input: 'pdf',
     output: 'pdf',
-    summary: (o) => (o.mode === 'target' ? `Make each file smaller than ${formatBytes(o.target)}` : `${o.level[0].toUpperCase()}${o.level.slice(1)} compression`),
+    summary: (o) =>
+      o.mode === 'target'
+        ? `Make each file smaller than ${formatBytes(o.target)}`
+        : `${o.level[0].toUpperCase()}${o.level.slice(1)} compression`,
     fields: [
-      { key: 'mode', label: 'Mode', type: 'select', options: [{ value: 'target', label: 'Target size' }, { value: 'level', label: 'Quality level' }] },
-      { key: 'target', label: 'Smaller than', type: 'select', number: true, options: SIZE_OPTIONS, when: (o) => o.mode === 'target' },
+      {
+        key: 'mode',
+        label: 'Mode',
+        type: 'select',
+        options: [
+          { value: 'target', label: 'Target size' },
+          { value: 'level', label: 'Quality level' },
+        ],
+      },
+      {
+        key: 'target',
+        label: 'Smaller than',
+        type: 'select',
+        number: true,
+        options: SIZE_OPTIONS,
+        when: (o) => o.mode === 'target',
+      },
       {
         key: 'level',
         label: 'Level',
         type: 'select',
-        options: [{ value: 'low', label: 'Less compression' }, { value: 'recommended', label: 'Recommended' }, { value: 'extreme', label: 'Extreme' }],
+        options: [
+          { value: 'low', label: 'Less compression' },
+          { value: 'recommended', label: 'Recommended' },
+          { value: 'extreme', label: 'Extreme' },
+        ],
         when: (o) => o.mode === 'level',
       },
     ],
     defaults: { mode: 'target', target: 1048576, level: 'recommended' },
     async each(file, o, progress, report) {
       const { compressPdf, compressToTarget } = await import('./compress.js')
-      const r = o.mode === 'target' ? await compressToTarget(file, o.target, progress) : await compressPdf(file, o.level, progress)
-      if (r.reached === false) report(`“${file.name}” couldn’t get under ${formatBytes(o.target)} (smallest: ${formatBytes(r.after)}).`)
+      const r =
+        o.mode === 'target'
+          ? await compressToTarget(file, o.target, progress)
+          : await compressPdf(file, o.level, progress)
+      if (r.reached === false)
+        report(`“${file.name}” couldn’t get under ${formatBytes(o.target)} (smallest: ${formatBytes(r.after)}).`)
       return asPdf(file.name, r.bytes)
     },
   },
@@ -255,7 +326,10 @@ export const STEP_TYPES = {
     validate: (o) => (o.password ? null : 'enter a password'),
     async each(file, o) {
       const { protectPdf } = await import('./qpdf.js')
-      return asPdf(file.name, await protectPdf(file, { password: o.password, allowPrint: true, allowCopy: true, allowEdit: true }))
+      return asPdf(
+        file.name,
+        await protectPdf(file, { password: o.password, allowPrint: true, allowCopy: true, allowEdit: true }),
+      )
     },
   },
   'to-images': {
@@ -265,7 +339,19 @@ export const STEP_TYPES = {
     output: 'image',
     last: true,
     summary: (o) => `Every page as a ${o.dpi} DPI JPG`,
-    fields: [{ key: 'dpi', label: 'Resolution', type: 'select', number: true, options: [{ value: 96, label: '96 DPI (screen)' }, { value: 150, label: '150 DPI' }, { value: 300, label: '300 DPI (print)' }] }],
+    fields: [
+      {
+        key: 'dpi',
+        label: 'Resolution',
+        type: 'select',
+        number: true,
+        options: [
+          { value: 96, label: '96 DPI (screen)' },
+          { value: 150, label: '150 DPI' },
+          { value: 300, label: '300 DPI (print)' },
+        ],
+      },
+    ],
     defaults: { dpi: 150 },
     async run(files, o, progress) {
       const { pdfsToImages } = await import('./convert.js')
@@ -275,7 +361,20 @@ export const STEP_TYPES = {
   },
 }
 
-export const STEP_ORDER = ['images-to-pdf', 'repair', 'unlock', 'merge', 'pages', 'rotate', 'ocr', 'watermark', 'page-numbers', 'compress', 'protect', 'to-images']
+export const STEP_ORDER = [
+  'images-to-pdf',
+  'repair',
+  'unlock',
+  'merge',
+  'pages',
+  'rotate',
+  'ocr',
+  'watermark',
+  'page-numbers',
+  'compress',
+  'protect',
+  'to-images',
+]
 
 export const newStep = (type, opts = {}) => ({ type, opts: { ...STEP_TYPES[type].defaults, ...opts } })
 
@@ -291,7 +390,11 @@ export const RECIPES = [
     id: 'application',
     name: 'Application pack',
     text: 'One numbered PDF under 500 KB, for job and admission portals.',
-    steps: [newStep('merge', { name: 'application' }), newStep('page-numbers'), newStep('compress', { mode: 'target', target: 512000 })],
+    steps: [
+      newStep('merge', { name: 'application' }),
+      newStep('page-numbers'),
+      newStep('compress', { mode: 'target', target: 512000 }),
+    ],
   },
   {
     id: 'photos',
@@ -411,7 +514,9 @@ export function sanitizeSteps(raw) {
 export function savedWorkflows() {
   try {
     const list = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]')
-    return Array.isArray(list) ? list.map((w) => ({ id: String(w.id), name: String(w.name).slice(0, 60), steps: sanitizeSteps(w.steps) })) : []
+    return Array.isArray(list)
+      ? list.map((w) => ({ id: String(w.id), name: String(w.name).slice(0, 60), steps: sanitizeSteps(w.steps) }))
+      : []
   } catch {
     return []
   }
@@ -426,7 +531,11 @@ export function saveWorkflows(list) {
   }
 }
 
-const b64url = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+const b64url = (s) =>
+  btoa(unescape(encodeURIComponent(s)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
 const unb64url = (s) => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))))
 
 export function encodeWorkflow(name, steps) {

@@ -56,7 +56,13 @@ export default function FileCard({
       </div>
       {onMove && total > 1 && (
         <div className="file-card-order">
-          <button type="button" className="mini-btn" title="Move left" disabled={index === 0} onClick={() => onMove(-1)}>
+          <button
+            type="button"
+            className="mini-btn"
+            title="Move left"
+            disabled={index === 0}
+            onClick={() => onMove(-1)}
+          >
             <ChevronLeft size={15} />
           </button>
           <span>{index + 1}</span>

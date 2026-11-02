@@ -16,7 +16,10 @@ async function docxGeometry(buffer) {
     const w = twips(sz, 'w') || 11906
     const h = twips(sz, 'h') || 16838
     const m = ['top', 'right', 'bottom', 'left'].map((k) => Math.max(0, twips(mar, k) || 1440) / 1440)
-    return { size: `${(w / 1440).toFixed(3)}in ${(h / 1440).toFixed(3)}in`, margin: m.map((v) => `${v.toFixed(3)}in`).join(' ') }
+    return {
+      size: `${(w / 1440).toFixed(3)}in ${(h / 1440).toFixed(3)}in`,
+      margin: m.map((v) => `${v.toFixed(3)}in`).join(' '),
+    }
   } catch {
     return { size: 'A4', margin: '1in' }
   }
@@ -45,7 +48,11 @@ section.docx{padding:0!important;margin:0!important;width:auto!important;min-hei
 section.docx:last-of-type{break-after:auto}
 .docx-wrapper{padding:0!important;background:transparent!important}
 .docx img{max-width:100%}`
-  const fallback = async () => page(`@page{size:${geo.size};margin:${geo.margin}}${MAMMOTH_CSS}`, (await mammoth.convertToHtml({ buffer })).value || '<p></p>')
+  const fallback = async () =>
+    page(
+      `@page{size:${geo.size};margin:${geo.margin}}${MAMMOTH_CSS}`,
+      (await mammoth.convertToHtml({ buffer })).value || '<p></p>',
+    )
 
   return {
     html: page(css, '<div id="root"></div>'),
@@ -66,7 +73,9 @@ section.docx:last-of-type{break-after:auto}
             useBase64URL: true,
             experimental: true,
           })
-          await Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => (i.onload = i.onerror = r)))))
+          await Promise.all(
+            [...document.images].map((i) => (i.complete ? null : new Promise((r) => (i.onload = i.onerror = r)))),
+          )
           await document.fonts?.ready
           if (!document.querySelector('section.docx')) throw new Error('Nothing rendered')
         }, buffer.toString('base64'))

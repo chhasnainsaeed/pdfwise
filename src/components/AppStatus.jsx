@@ -38,7 +38,8 @@ export function AppStatus() {
   usePwaEvents((type) => {
     if (type === 'update') setUpdate(true)
     if (type === 'offline-ready') setToast({ icon: CloudOff, text: 'PDFwise is ready to work offline.' })
-    if (type === 'installed') setToast({ icon: SquarePlus, text: 'Installed — open PDFwise from your home screen or app list.' })
+    if (type === 'installed')
+      setToast({ icon: SquarePlus, text: 'Installed — open PDFwise from your home screen or app list.' })
   })
 
   useEffect(() => {
@@ -49,7 +50,11 @@ export function AppStatus() {
     setToast(
       online
         ? { icon: RefreshCw, text: 'Back online.' }
-        : { icon: WifiOff, text: 'You’re offline. Tools that run in your browser keep working; Office and web-page conversions need a connection.', sticky: true },
+        : {
+            icon: WifiOff,
+            text: 'You’re offline. Tools that run in your browser keep working; Office and web-page conversions need a connection.',
+            sticky: true,
+          },
     )
   }, [online])
 

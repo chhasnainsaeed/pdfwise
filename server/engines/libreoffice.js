@@ -11,7 +11,20 @@ import { HttpError } from '../util.js'
 const TIMEOUT_MS = (Number(process.env.CONVERT_TIMEOUT_S) || 120) * 1000
 const CONCURRENCY = Math.max(1, Number(process.env.CONVERT_CONCURRENCY) || 2)
 
-export const LIBREOFFICE_FORMATS = ['doc', 'docx', 'odt', 'rtf', 'txt', 'xls', 'xlsx', 'ods', 'csv', 'ppt', 'pptx', 'odp']
+export const LIBREOFFICE_FORMATS = [
+  'doc',
+  'docx',
+  'odt',
+  'rtf',
+  'txt',
+  'xls',
+  'xlsx',
+  'ods',
+  'csv',
+  'ppt',
+  'pptx',
+  'odp',
+]
 
 /** Locates LibreOffice. Checked per request, so installing it doesn't need a server restart. */
 export function findSoffice() {
@@ -27,7 +40,13 @@ export function findSoffice() {
         ]
       : process.platform === 'darwin'
         ? ['/Applications/LibreOffice.app/Contents/MacOS/soffice']
-        : ['/usr/bin/soffice', '/usr/local/bin/soffice', '/usr/bin/libreoffice', '/snap/bin/libreoffice', '/opt/libreoffice/program/soffice']
+        : [
+            '/usr/bin/soffice',
+            '/usr/local/bin/soffice',
+            '/usr/bin/libreoffice',
+            '/snap/bin/libreoffice',
+            '/opt/libreoffice/program/soffice',
+          ]
   return candidates.find((p) => existsSync(p)) ?? null
 }
 

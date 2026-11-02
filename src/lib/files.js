@@ -66,7 +66,12 @@ export const KINDS = {
     exts: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'],
     mimes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp'],
   },
-  word: { label: 'Word', noun: 'Word documents (DOC, DOCX, ODT, RTF, TXT)', exts: ['doc', 'docx', 'odt', 'rtf', 'txt'], mimes: [] },
+  word: {
+    label: 'Word',
+    noun: 'Word documents (DOC, DOCX, ODT, RTF, TXT)',
+    exts: ['doc', 'docx', 'odt', 'rtf', 'txt'],
+    mimes: [],
+  },
   excel: { label: 'Excel', noun: 'spreadsheets (XLS, XLSX, ODS, CSV)', exts: ['xls', 'xlsx', 'ods', 'csv'], mimes: [] },
   powerpoint: { label: 'PowerPoint', noun: 'presentations (PPT, PPTX, ODP)', exts: ['ppt', 'pptx', 'odp'], mimes: [] },
 }

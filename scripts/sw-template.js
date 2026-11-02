@@ -8,7 +8,13 @@ const RUNTIME = 'pdfwise-runtime' // OCR engine + language data, web fonts
 const SHARE = 'pdfwise-share' // files shared into the installed app, until the page picks them up
 
 // Third-party files the app loads on demand. Cached on first use so OCR and fonts work offline.
-const RUNTIME_HOSTS = ['cdn.jsdelivr.net', 'unpkg.com', 'tessdata.projectnaptha.com', 'fonts.googleapis.com', 'fonts.gstatic.com']
+const RUNTIME_HOSTS = [
+  'cdn.jsdelivr.net',
+  'unpkg.com',
+  'tessdata.projectnaptha.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -86,8 +92,16 @@ async function page(req, url) {
     }
     return res
   } catch {
-    const cached = (await caches.match(key, { ignoreSearch: true, ignoreVary: true })) || (await caches.match('/', { ignoreSearch: true, ignoreVary: true }))
-    return cached || new Response('<h1>You’re offline</h1><p>Open PDFwise once while online so it can work offline.</p>', { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+    const cached =
+      (await caches.match(key, { ignoreSearch: true, ignoreVary: true })) ||
+      (await caches.match('/', { ignoreSearch: true, ignoreVary: true }))
+    return (
+      cached ||
+      new Response('<h1>You’re offline</h1><p>Open PDFwise once while online so it can work offline.</p>', {
+        status: 503,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      })
+    )
   }
 }
 
@@ -126,7 +140,15 @@ async function receiveShare(req) {
     const files = form.getAll('files').filter((f) => f && typeof f === 'object' && f.size > 0)
     await Promise.all(
       files.map((f, i) =>
-        cache.put(`/__shared/${i}`, new Response(f, { headers: { 'Content-Type': f.type || 'application/octet-stream', 'X-File-Name': encodeURIComponent(f.name || `file-${i + 1}`) } })),
+        cache.put(
+          `/__shared/${i}`,
+          new Response(f, {
+            headers: {
+              'Content-Type': f.type || 'application/octet-stream',
+              'X-File-Name': encodeURIComponent(f.name || `file-${i + 1}`),
+            },
+          }),
+        ),
       ),
     )
     const text = [form.get('url'), form.get('text'), form.get('title')].filter(Boolean).join(' ')

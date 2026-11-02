@@ -26,7 +26,9 @@ const UNITS = [
 
 function initialTarget(bytes) {
   if (!bytes) return { amount: 1, unit: 'MB' }
-  return bytes >= 1024 * 1024 ? { amount: +(bytes / 1024 / 1024).toFixed(2), unit: 'MB' } : { amount: Math.round(bytes / 1024), unit: 'KB' }
+  return bytes >= 1024 * 1024
+    ? { amount: +(bytes / 1024 / 1024).toFixed(2), unit: 'MB' }
+    : { amount: Math.round(bytes / 1024), unit: 'KB' }
 }
 
 export default function Compress() {
@@ -51,7 +53,8 @@ export default function Compress() {
       for (let i = 0; i < files.length; i++) {
         const { file } = files[i]
         const step = (d, t) => progress((i + d / Math.max(t, 1)) * 100, files.length * 100)
-        const r = mode === 'target' ? await compressToTarget(file, targetBytes, step) : await compressPdf(file, level, step)
+        const r =
+          mode === 'target' ? await compressToTarget(file, targetBytes, step) : await compressPdf(file, level, step)
         before += r.before
         after += r.after
         replaced += r.replaced
@@ -72,7 +75,13 @@ export default function Compress() {
           ? 'Re-encoding the images didn’t make the file smaller, so your original is kept as-is.'
           : 'There were no large images to shrink — text and vector graphics are already compact.'
       }
-      return { files: out, zipName: 'compressed-pdfs.zip', stats: { before, after }, note, analytics: { mode, setting: mode === 'target' ? formatBytes(targetBytes) : level } }
+      return {
+        files: out,
+        zipName: 'compressed-pdfs.zip',
+        stats: { before, after },
+        note,
+        analytics: { mode, setting: mode === 'target' ? formatBytes(targetBytes) : level },
+      }
     })
 
   return (
@@ -117,7 +126,12 @@ export default function Compress() {
                     onChange={(amount) => setTarget((t) => ({ ...t, amount }))}
                     aria-label="Target size"
                   />
-                  <Segmented label="Unit" value={target.unit} onChange={(unit) => setTarget((t) => ({ ...t, unit }))} options={UNITS} />
+                  <Segmented
+                    label="Unit"
+                    value={target.unit}
+                    onChange={(unit) => setTarget((t) => ({ ...t, unit }))}
+                    options={UNITS}
+                  />
                 </div>
               </Field>
               <p className="side-text small">

@@ -1,11 +1,33 @@
-import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFNumber, PDFRawStream, PDFString, decodePDFRawStream } from 'pdf-lib'
+import {
+  PDFArray,
+  PDFDict,
+  PDFDocument,
+  PDFHexString,
+  PDFName,
+  PDFNumber,
+  PDFRawStream,
+  PDFString,
+  decodePDFRawStream,
+} from 'pdf-lib'
 import { UserError, pluralize } from './files.js'
 import { flattenPage, rebuild } from './flatten.js'
 import { srgbProfile } from './icc.js'
 
 const N = (n) => PDFName.of(n)
 const PRODUCER = 'PDFwise'
-const UNSAFE_ACTIONS = new Set(['JavaScript', 'Launch', 'Sound', 'Movie', 'ResetForm', 'ImportData', 'Hide', 'SetOCGState', 'Rendition', 'Trans', 'GoTo3DView'])
+const UNSAFE_ACTIONS = new Set([
+  'JavaScript',
+  'Launch',
+  'Sound',
+  'Movie',
+  'ResetForm',
+  'ImportData',
+  'Hide',
+  'SetOCGState',
+  'Rendition',
+  'Trans',
+  'GoTo3DView',
+])
 
 function fontEmbedded(font) {
   const subtype = font.lookup(N('Subtype'))
@@ -42,7 +64,8 @@ function scanResources(res, issues, seen = new Set()) {
   if (spaces instanceof PDFDict) {
     for (const [, v] of spaces.entries()) {
       const cs = res.context.lookup(v)
-      if (cs === N('DeviceCMYK') || (cs instanceof PDFArray && cs.toString().includes('/DeviceCMYK'))) issues.add('cmyk')
+      if (cs === N('DeviceCMYK') || (cs instanceof PDFArray && cs.toString().includes('/DeviceCMYK')))
+        issues.add('cmyk')
     }
   }
   const xobjects = res.lookup(N('XObject'))
@@ -67,7 +90,12 @@ function pageIssues(page) {
   const issues = new Set()
   scanResources(page.node.Resources(), issues)
   const contents = page.node.Contents()
-  const streams = contents instanceof PDFArray ? contents.asArray().map((r) => page.doc.context.lookup(r)) : contents ? [contents] : []
+  const streams =
+    contents instanceof PDFArray
+      ? contents.asArray().map((r) => page.doc.context.lookup(r))
+      : contents
+        ? [contents]
+        : []
   if (streams.some((s) => /(?:-?[\d.]+\s+){4}[kK]\b/.test(decodedText(s)))) issues.add('cmyk')
   return issues
 }
@@ -102,7 +130,8 @@ function cleanAnnotations(doc) {
   return removed
 }
 
-const xmlEscape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const xmlEscape = (s) =>
+  String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 const isoDate = (d) => d.toISOString().replace(/\.\d{3}Z$/, 'Z')
 
 function xmpPacket({ title, author, created, modified }) {
@@ -139,7 +168,8 @@ export async function convertToPdfA(file, { flatten = true } = {}, progress) {
   try {
     src = await PDFDocument.load(await file.arrayBuffer(), { updateMetadata: false })
   } catch (e) {
-    if (/encrypt/i.test(String(e?.message))) throw new UserError('This PDF is encrypted. Unlock it first — PDF/A files can’t be encrypted.')
+    if (/encrypt/i.test(String(e?.message)))
+      throw new UserError('This PDF is encrypted. Unlock it first — PDF/A files can’t be encrypted.')
     throw e
   }
   const report = []
@@ -147,7 +177,10 @@ export async function convertToPdfA(file, { flatten = true } = {}, progress) {
   const author = src.getAuthor()
   const created = new Date(Math.floor((src.getCreationDate()?.getTime() ?? Date.now()) / 1000) * 1000)
 
-  const problems = src.getPages().map((p, i) => ({ page: i + 1, issues: pageIssues(p) })).filter((p) => p.issues.size)
+  const problems = src
+    .getPages()
+    .map((p, i) => ({ page: i + 1, issues: pageIssues(p) }))
+    .filter((p) => p.issues.size)
   const fontPages = problems.filter((p) => p.issues.has('font')).length
   const cmykPages = problems.filter((p) => p.issues.has('cmyk')).length
   if (problems.length && flatten) {
@@ -155,9 +188,13 @@ export async function convertToPdfA(file, { flatten = true } = {}, progress) {
       await flattenPage(file, src, problems[i].page, { dpi: 200 })
       progress?.(i + 1, problems.length + 1)
     }
-    report.push(`${pluralize(problems.length, 'page')} with ${[fontPages && 'non-embedded fonts', cmykPages && 'CMYK color'].filter(Boolean).join(' or ')} converted to images.`)
+    report.push(
+      `${pluralize(problems.length, 'page')} with ${[fontPages && 'non-embedded fonts', cmykPages && 'CMYK color'].filter(Boolean).join(' or ')} converted to images.`,
+    )
   } else if (problems.length) {
-    report.push(`Warning: ${pluralize(problems.length, 'page')} still use ${[fontPages && 'non-embedded fonts', cmykPages && 'CMYK color'].filter(Boolean).join(' and ')}, so the file won’t fully comply.`)
+    report.push(
+      `Warning: ${pluralize(problems.length, 'page')} still use ${[fontPages && 'non-embedded fonts', cmykPages && 'CMYK color'].filter(Boolean).join(' and ')}, so the file won’t fully comply.`,
+    )
   } else {
     report.push('All fonts are embedded and colors are RGB/gray.')
   }
@@ -177,7 +214,12 @@ export async function convertToPdfA(file, { flatten = true } = {}, progress) {
   doc.setCreationDate(created)
   doc.setModificationDate(modified)
 
-  const metadata = ctx.register(ctx.stream(new TextEncoder().encode(xmpPacket({ title, author, created, modified })), { Type: 'Metadata', Subtype: 'XML' }))
+  const metadata = ctx.register(
+    ctx.stream(new TextEncoder().encode(xmpPacket({ title, author, created, modified })), {
+      Type: 'Metadata',
+      Subtype: 'XML',
+    }),
+  )
   doc.catalog.set(N('Metadata'), metadata)
   const profile = ctx.register(ctx.flateStream(srgbProfile(), { N: 3 }))
   const intent = ctx.obj({

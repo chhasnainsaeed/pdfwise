@@ -5,7 +5,11 @@ export function Field({ label, hint, error, children }) {
     <div className="field">
       {label && <span className="field-label">{label}</span>}
       {children}
-      {error ? <small className="field-error">{error}</small> : hint ? <small className="field-hint">{hint}</small> : null}
+      {error ? (
+        <small className="field-error">{error}</small>
+      ) : hint ? (
+        <small className="field-hint">{hint}</small>
+      ) : null}
     </div>
   )
 }

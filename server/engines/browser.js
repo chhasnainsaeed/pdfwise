@@ -36,7 +36,14 @@ export function findBrowser() {
             '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
             '/Applications/Chromium.app/Contents/MacOS/Chromium',
           ]
-        : ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/microsoft-edge', '/snap/bin/chromium']
+        : [
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/microsoft-edge',
+            '/snap/bin/chromium',
+          ]
   return candidates.find((p) => existsSync(p)) ?? null
 }
 
@@ -108,7 +115,10 @@ async function loadLazyContent(page) {
     }
     window.scrollTo(0, 0)
     const pending = [...document.images].filter((img) => !img.complete)
-    await Promise.race([Promise.all(pending.map((img) => new Promise((r) => (img.onload = img.onerror = r)))), delay(4000)])
+    await Promise.race([
+      Promise.all(pending.map((img) => new Promise((r) => (img.onload = img.onerror = r)))),
+      delay(4000),
+    ])
   })
 }
 
@@ -134,7 +144,9 @@ export function renderPdf({ html, url, prepare }, opts = {}) {
           const ok = /^(data|blob):/.test(req.url()) || req.url() === 'about:blank'
           return ok ? req.continue() : req.abort('blockedbyclient')
         }
-        const problem = await urlProblem(req.url(), { mainFrame: req.isNavigationRequest() && req.frame() === page.mainFrame() })
+        const problem = await urlProblem(req.url(), {
+          mainFrame: req.isNavigationRequest() && req.frame() === page.mainFrame(),
+        })
         if (problem) {
           if (req.isNavigationRequest() && req.frame() === page.mainFrame()) blocked = problem
           return req.abort('blockedbyclient')

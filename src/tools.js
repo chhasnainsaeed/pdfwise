@@ -35,14 +35,7 @@ export const TOOLS = [
     processing: 'Running your workflow…',
     done: 'Your workflow is finished',
     related: ['merge-pdf', 'compress-pdf', 'protect-pdf'],
-    keywords: [
-      'batch pdf',
-      'bulk compress pdf',
-      'pdf automation',
-      'process multiple pdfs',
-      'recipe',
-      'workflow',
-    ],
+    keywords: ['batch pdf', 'bulk compress pdf', 'pdf automation', 'process multiple pdfs', 'recipe', 'workflow'],
     faq: [
       [
         'What can a workflow do?',
@@ -483,12 +476,7 @@ export const TOOLS = [
     done: 'Your PDF is protected',
     related: [],
     keywords: ['password protect pdf', 'encrypt pdf', 'lock pdf'],
-    faq: [
-      [
-        'How strong is the encryption?',
-        'Files are locked with AES-256, the strongest standard PDF encryption.',
-      ],
-    ],
+    faq: [['How strong is the encryption?', 'Files are locked with AES-256, the strongest standard PDF encryption.']],
   },
   {
     id: 'unlock-pdf',

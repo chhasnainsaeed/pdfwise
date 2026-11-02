@@ -34,12 +34,18 @@ function buildPages(ring) {
   const geo = new PlaneGeometry(PAGE_W, PAGE_H)
   const shadowGeo = new PlaneGeometry(PAGE_W * 1.04, PAGE_H * 1.04)
   const pages = TOOLS.map((tool, i) => {
-    const front = new Mesh(geo, new MeshStandardMaterial({ map: pageTexture(tool), roughness: 0.55, metalness: 0.02, transparent: true }))
+    const front = new Mesh(
+      geo,
+      new MeshStandardMaterial({ map: pageTexture(tool), roughness: 0.55, metalness: 0.02, transparent: true }),
+    )
     front.userData.tool = tool
     const back = new Mesh(geo, new MeshStandardMaterial({ color: '#efeefa', roughness: 0.9, transparent: true }))
     back.rotation.y = Math.PI
     back.position.z = -0.005
-    const shadow = new Mesh(shadowGeo, new MeshBasicMaterial({ color: '#2a2366', transparent: true, opacity: 0.1, depthWrite: false }))
+    const shadow = new Mesh(
+      shadowGeo,
+      new MeshBasicMaterial({ color: '#2a2366', transparent: true, opacity: 0.1, depthWrite: false }),
+    )
     shadow.position.set(0.1, -0.14, -0.06)
     const card = new Group()
     card.add(shadow, back, front)
@@ -148,7 +154,11 @@ export function createHeroScene(host, onPick) {
       const a = p.a + orbit
       p.hover += ((p.front === hovered ? 1 : 0) - p.hover) * ease(dt, 8)
       const calm = 1 - p.hover // a hovered page turns to face the camera
-      p.card.position.set(Math.cos(a) * rx * spread, Math.sin(a) * ry * spread + p.lift + wobble(0.8, p.phase, 0.18), p.z + p.hover * 1.6)
+      p.card.position.set(
+        Math.cos(a) * rx * spread,
+        Math.sin(a) * ry * spread + p.lift + wobble(0.8, p.phase, 0.18),
+        p.z + p.hover * 1.6,
+      )
       p.card.rotation.set(
         wobble(0.6, p.phase, 0.12) * calm,
         (-Math.cos(a) * 0.45 + p.spin + wobble(0.4, p.phase, 0.15)) * calm,

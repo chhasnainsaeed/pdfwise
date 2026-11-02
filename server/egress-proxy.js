@@ -28,10 +28,13 @@ async function onRequest(req, res) {
   if (problem) return deny(res, problem)
   const headers = { ...req.headers, host: url.host }
   for (const h of HOP_BY_HOP) delete headers[h]
-  const upstream = http.request({ host: ip, port, method: req.method, path: url.pathname + url.search, headers, setHost: false }, (up) => {
-    res.writeHead(up.statusCode ?? 502, up.headers)
-    up.pipe(res)
-  })
+  const upstream = http.request(
+    { host: ip, port, method: req.method, path: url.pathname + url.search, headers, setHost: false },
+    (up) => {
+      res.writeHead(up.statusCode ?? 502, up.headers)
+      up.pipe(res)
+    },
+  )
   upstream.on('error', () => res.destroy())
   req.pipe(upstream)
 }

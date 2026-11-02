@@ -32,8 +32,16 @@ export default function SmartDrop() {
     excite(true)
     try {
       const result = await analyzeFiles(list)
-      track('Smart drop', { kind: result.kind ?? 'unsupported', files: bucket(Array.from(list).length), best: result.picks[0]?.id })
-      setState(result.kind ? { phase: 'done', ...result } : { phase: 'error', message: 'PDFwise can’t work with that file type. Try a PDF, image or Office document.' })
+      track('Smart drop', {
+        kind: result.kind ?? 'unsupported',
+        files: bucket(Array.from(list).length),
+        best: result.picks[0]?.id,
+      })
+      setState(
+        result.kind
+          ? { phase: 'done', ...result }
+          : { phase: 'error', message: 'PDFwise can’t work with that file type. Try a PDF, image or Office document.' },
+      )
     } catch (e) {
       console.error(e)
       setState({ phase: 'error', message: 'Couldn’t read that file.' })
@@ -85,7 +93,11 @@ export default function SmartDrop() {
     const tool = TOOLS_BY_ID[id]
     const files = tool.multiple ? state.files : state.files.slice(0, 1)
     track('Smart drop pick', { tool: id, rank: state.picks.findIndex((p) => p.id === id) + 1 })
-    handOff(id, files.map((file) => ({ id: uid(), file })), { source: 'smart-drop' })
+    handOff(
+      id,
+      files.map((file) => ({ id: uid(), file })),
+      { source: 'smart-drop' },
+    )
     navigate(`/${id}`)
   }
 
@@ -99,7 +111,12 @@ export default function SmartDrop() {
               {state.facts.join(' · ')}
               {state.skipped > 0 && ` · ${pluralize(state.skipped, 'other file')} skipped`}
             </span>
-            <button type="button" className="icon-btn sd-close" aria-label="Clear" onClick={() => setState({ phase: 'idle' })}>
+            <button
+              type="button"
+              className="icon-btn sd-close"
+              aria-label="Clear"
+              onClick={() => setState({ phase: 'idle' })}
+            >
               <X size={18} />
             </button>
           </div>
@@ -108,7 +125,13 @@ export default function SmartDrop() {
             {state.picks.map((p, i) => {
               const t = TOOLS_BY_ID[p.id]
               return (
-                <button key={p.id} type="button" className={`sd-pick ${i === 0 ? 'is-best' : ''}`} style={{ '--c': t.color, '--i': i }} onClick={() => open(p.id)}>
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`sd-pick ${i === 0 ? 'is-best' : ''}`}
+                  style={{ '--c': t.color, '--i': i }}
+                  onClick={() => open(p.id)}
+                >
                   <ToolIcon tool={t} size="sm" />
                   <span className="sd-pick-text">
                     <strong>
@@ -128,7 +151,13 @@ export default function SmartDrop() {
           <div className="sd-orb" aria-hidden="true">
             {state.phase === 'busy' ? <span className="spinner" /> : <Upload size={28} />}
           </div>
-          <h2 className="sd-title">{over ? 'Let go — we’ll take it from here' : state.phase === 'busy' ? 'Looking at your file…' : 'Drop any file. We’ll pick the right tool.'}</h2>
+          <h2 className="sd-title">
+            {over
+              ? 'Let go — we’ll take it from here'
+              : state.phase === 'busy'
+                ? 'Looking at your file…'
+                : 'Drop any file. We’ll pick the right tool.'}
+          </h2>
           <p className="sd-sub">PDF, images, Word, Excel or PowerPoint — checked on your device, never uploaded.</p>
           <div className="sd-actions">
             <button type="button" className="btn btn-primary btn-lg" onClick={() => input.current.click()}>
@@ -139,7 +168,8 @@ export default function SmartDrop() {
             </button>
           </div>
           <p className="sd-keys">
-            <ClipboardPaste size={14} /> Paste a file or link with <kbd>Ctrl</kbd>+<kbd>V</kbd> · Search with <kbd>Ctrl</kbd>+<kbd>K</kbd>
+            <ClipboardPaste size={14} /> Paste a file or link with <kbd>Ctrl</kbd>+<kbd>V</kbd> · Search with{' '}
+            <kbd>Ctrl</kbd>+<kbd>K</kbd>
           </p>
           {state.phase === 'error' && (
             <p className="sd-error" role="alert">

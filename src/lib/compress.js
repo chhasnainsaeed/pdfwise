@@ -1,13 +1,4 @@
-import {
-  PDFArray,
-  PDFBool,
-  PDFDocument,
-  PDFName,
-  PDFNumber,
-  PDFRawStream,
-  PDFRef,
-  decodePDFRawStream,
-} from 'pdf-lib'
+import { PDFArray, PDFBool, PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFRef, decodePDFRawStream } from 'pdf-lib'
 import { canvasToBlob, mapLimit, parallelism } from './files.js'
 
 const N = (n) => PDFName.of(n)
@@ -59,7 +50,12 @@ export async function compressPdf(file, level, progress) {
 
   const bytes = await pdf.save({ useObjectStreams: true })
   const smaller = bytes.length < original.length
-  return { bytes: smaller ? bytes : original, before: original.length, after: smaller ? bytes.length : original.length, replaced }
+  return {
+    bytes: smaller ? bytes : original,
+    before: original.length,
+    after: smaller ? bytes.length : original.length,
+    replaced,
+  }
 }
 
 // From gentlest to harshest; compressToTarget searches this ladder for the gentlest step that fits.

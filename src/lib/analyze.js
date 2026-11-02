@@ -92,6 +92,7 @@ export async function analyzeFiles(list) {
 
 /** First http(s)-looking address in a piece of pasted text. */
 export function findUrl(text) {
-  const m = /\bhttps?:\/\/[^\s<>"']+/i.exec(text || '') ?? /\b(?:www\.)[a-z0-9-]+(?:\.[a-z0-9-]+)+[^\s<>"']*/i.exec(text || '')
+  const m =
+    /\bhttps?:\/\/[^\s<>"']+/i.exec(text || '') ?? /\b(?:www\.)[a-z0-9-]+(?:\.[a-z0-9-]+)+[^\s<>"']*/i.exec(text || '')
   return m ? m[0] : null
 }

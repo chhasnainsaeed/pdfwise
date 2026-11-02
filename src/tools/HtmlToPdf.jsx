@@ -26,7 +26,13 @@ export default function HtmlToPdf() {
   const convert = () => {
     if (!ready) return
     run(async () => {
-      const data = await convertUrlOnServer(target, { format, landscape: orientation === 'landscape', margin, background, screen })
+      const data = await convertUrlOnServer(target, {
+        format,
+        landscape: orientation === 'landscape',
+        margin,
+        background,
+        screen,
+      })
       const host = new URL(target).hostname.replace(/^www\./, '')
       return { files: [{ name: `${host}.pdf`, type: PDF_TYPE, data }] }
     })
@@ -34,7 +40,10 @@ export default function HtmlToPdf() {
 
   let hint = null
   if (!status) hint = 'Checking the conversion server…'
-  else if (!status.ok) hint = navigator.onLine ? 'The conversion server isn’t running.' : 'You’re offline — HTML to PDF needs a connection.'
+  else if (!status.ok)
+    hint = navigator.onLine
+      ? 'The conversion server isn’t running.'
+      : 'You’re offline — HTML to PDF needs a connection.'
   else if (!status.browser) hint = 'No Chrome or Edge browser was found on the server.'
   else if (!url.trim()) hint = 'Paste the address of a web page.'
   else if (!target) hint = 'That doesn’t look like a web address.'

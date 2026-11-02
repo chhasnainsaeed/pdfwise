@@ -15,8 +15,7 @@
 .upload-stage {
   justify-content: center;
   background:
-    radial-gradient(900px 420px at 50% 0%, color-mix(in srgb, var(--c) 9%, transparent), transparent 70%),
-    var(--bg);
+    radial-gradient(900px 420px at 50% 0%, color-mix(in srgb, var(--c) 9%, transparent), transparent 70%), var(--bg);
 }
 
 .stage-title {

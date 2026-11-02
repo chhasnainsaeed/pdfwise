@@ -39,7 +39,22 @@ const entryAssets = new Set([...entry.matchAll(/(?:src|href)="\/(assets\/[^"]+)"
 const isCore = (u) => !u.startsWith('/assets/') || entryAssets.has(u)
 const core = urls.filter(isCore)
 const rest = urls.filter((u) => !isCore(u))
-const kb = (list) => (list.reduce((n, u) => n + statSync(path.join(dist, u === '/' ? 'index.html' : u.startsWith('/assets/') || u.includes('.') ? u.slice(1) : `${u.slice(1)}.html`)).size, 0) / 1024 / 1024).toFixed(1)
+const kb = (list) =>
+  (
+    list.reduce(
+      (n, u) =>
+        n +
+        statSync(
+          path.join(
+            dist,
+            u === '/' ? 'index.html' : u.startsWith('/assets/') || u.includes('.') ? u.slice(1) : `${u.slice(1)}.html`,
+          ),
+        ).size,
+      0,
+    ) /
+    1024 /
+    1024
+  ).toFixed(1)
 
 const sw = template
   .replace('__VERSION__', version)
@@ -48,4 +63,6 @@ const sw = template
 writeFileSync(path.join(dist, 'sw.js'), sw)
 
 const bytes = files.reduce((n, f) => n + statSync(path.join(dist, f)).size, 0)
-console.log(`[pwa] sw.js ${version}: ${urls.length} files (${(bytes / 1024 / 1024).toFixed(1)} MB) available offline — core ${core.length} files (${kb(core)} MB), rest ${rest.length} (${kb(rest)} MB, skipped on Data Saver)`)
+console.log(
+  `[pwa] sw.js ${version}: ${urls.length} files (${(bytes / 1024 / 1024).toFixed(1)} MB) available offline — core ${core.length} files (${kb(core)} MB), rest ${rest.length} (${kb(rest)} MB, skipped on Data Saver)`,
+)

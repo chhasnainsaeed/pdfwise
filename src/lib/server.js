@@ -61,7 +61,9 @@ export async function convertOnServer(file) {
   }
   if (!res.ok) {
     const message = (await res.json().catch(() => null))?.error
-    throw new UserError(message ? `“${file.name}”: ${message}` : `The server couldn’t convert “${file.name}” (error ${res.status}).`)
+    throw new UserError(
+      message ? `“${file.name}”: ${message}` : `The server couldn’t convert “${file.name}” (error ${res.status}).`,
+    )
   }
   return new Uint8Array(await res.arrayBuffer())
 }

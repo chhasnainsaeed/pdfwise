@@ -5,7 +5,16 @@ import ToolIcon from '../components/ToolIcon.jsx'
 import ToolLayout from '../components/ToolLayout.jsx'
 import { baseName, pluralize, formatBytes, matchesKind, uid } from '../lib/files.js'
 import { moveItem, useReorder, useSession } from '../lib/hooks.js'
-import { RECIPES, STEP_ORDER, STEP_TYPES, checkWorkflow, decodeWorkflow, newStep, runWorkflow, sanitizeSteps } from '../lib/workflow.js'
+import {
+  RECIPES,
+  STEP_ORDER,
+  STEP_TYPES,
+  checkWorkflow,
+  decodeWorkflow,
+  newStep,
+  runWorkflow,
+  sanitizeSteps,
+} from '../lib/workflow.js'
 import Sidebar from './workflow/Sidebar.jsx'
 import StepCard, { stepTool } from './workflow/StepCard.jsx'
 
@@ -41,7 +50,14 @@ export default function Workflow() {
     if (params.get('w')) setParams({}, { replace: true })
   }, [params, setParams])
 
-  const problem = useMemo(() => checkWorkflow(steps, files.map((f) => f.file)), [steps, files])
+  const problem = useMemo(
+    () =>
+      checkWorkflow(
+        steps,
+        files.map((f) => f.file),
+      ),
+    [steps, files],
+  )
   const totalIn = files.reduce((n, f) => n + f.file.size, 0)
   const combines = steps.some((s) => STEP_TYPES[s.type].combine)
 
@@ -52,7 +68,8 @@ export default function Workflow() {
     setPicker(false)
   }
 
-  const update = (id, patch) => setSteps((list) => list.map((s) => (s.id === id ? { ...s, opts: { ...s.opts, ...patch } } : s)))
+  const update = (id, patch) =>
+    setSteps((list) => list.map((s) => (s.id === id ? { ...s, opts: { ...s.opts, ...patch } } : s)))
   const remove = (id) => setSteps((list) => list.filter((s) => s.id !== id))
   const move = (i, d) => setSteps((list) => (list[i + d] ? moveItem(list, i, i + d) : list))
 
@@ -99,14 +116,24 @@ export default function Workflow() {
               <span key={f.id} className="wf-file">
                 <span className="truncate">{f.file.name}</span>
                 <small>{formatBytes(f.file.size)}</small>
-                <button type="button" aria-label={`Remove ${f.file.name}`} onClick={() => setFiles((list) => list.filter((x) => x.id !== f.id))}>
+                <button
+                  type="button"
+                  aria-label={`Remove ${f.file.name}`}
+                  onClick={() => setFiles((list) => list.filter((x) => x.id !== f.id))}
+                >
                   <X size={14} />
                 </button>
               </span>
             ))}
           </div>
 
-          <input className="wf-name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Workflow name" maxLength={60} />
+          <input
+            className="wf-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            aria-label="Workflow name"
+            maxLength={60}
+          />
 
           <ol className="wf-pipeline">
             <li className="wf-node wf-node-io">
@@ -129,7 +156,11 @@ export default function Workflow() {
               />
             ))}
             <li className="wf-add">
-              <button type="button" className={`wf-add-btn ${picker ? 'is-open' : ''}`} onClick={() => setPicker((p) => !p)}>
+              <button
+                type="button"
+                className={`wf-add-btn ${picker ? 'is-open' : ''}`}
+                onClick={() => setPicker((p) => !p)}
+              >
                 <Plus size={18} /> Add step
               </button>
               {picker && (

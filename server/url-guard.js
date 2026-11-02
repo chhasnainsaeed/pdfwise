@@ -27,7 +27,17 @@ function isPrivateIp(ip) {
   }
   const v = ip.toLowerCase()
   if (v.startsWith('::ffff:')) return isPrivateIp(v.slice(7))
-  return v === '::' || v === '::1' || v.startsWith('fc') || v.startsWith('fd') || v.startsWith('fe8') || v.startsWith('fe9') || v.startsWith('fea') || v.startsWith('feb') || v.startsWith('ff')
+  return (
+    v === '::' ||
+    v === '::1' ||
+    v.startsWith('fc') ||
+    v.startsWith('fd') ||
+    v.startsWith('fe8') ||
+    v.startsWith('fe9') ||
+    v.startsWith('fea') ||
+    v.startsWith('feb') ||
+    v.startsWith('ff')
+  )
 }
 
 async function addressesFor(host) {
@@ -48,7 +58,8 @@ const WEB_PORTS = new Set([80, 443, 8080, 8443])
 export async function checkHost(hostname, port) {
   if (!ALLOW_PRIVATE && !WEB_PORTS.has(port)) return { problem: `Port ${port} isn’t allowed.` }
   const host = hostname.replace(/^\[|\]$/g, '').toLowerCase()
-  if (!ALLOW_PRIVATE && (host === 'localhost' || /\.(localhost|local|internal|lan|home\.arpa)$/.test(host))) return { problem: LOCAL_MESSAGE }
+  if (!ALLOW_PRIVATE && (host === 'localhost' || /\.(localhost|local|internal|lan|home\.arpa)$/.test(host)))
+    return { problem: LOCAL_MESSAGE }
   let addrs
   try {
     addrs = await addressesFor(host)
@@ -69,7 +80,8 @@ export async function urlProblem(raw, { mainFrame = false } = {}) {
     return 'That isn’t a valid web address.'
   }
   if (!mainFrame && (url.protocol === 'data:' || url.protocol === 'blob:' || url.href === 'about:blank')) return null
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') return 'Only http:// and https:// addresses can be converted.'
+  if (url.protocol !== 'http:' && url.protocol !== 'https:')
+    return 'Only http:// and https:// addresses can be converted.'
   if (ALLOW_PRIVATE) return null
   const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase()
   if (host === 'localhost' || /\.(localhost|local|internal|lan|home\.arpa)$/.test(host)) return LOCAL_MESSAGE

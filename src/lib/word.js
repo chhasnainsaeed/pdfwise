@@ -23,7 +23,14 @@ async function pageItems(page) {
     .map((it) => {
       const [x, y] = vp.convertToViewportPoint(it.transform[4], it.transform[5])
       const family = tc.styles[it.fontName]?.fontFamily ?? ''
-      return { str: it.str, x, y, w: it.width, size: Math.hypot(it.transform[2], it.transform[3]) || it.height || 11, family }
+      return {
+        str: it.str,
+        x,
+        y,
+        w: it.width,
+        size: Math.hypot(it.transform[2], it.transform[3]) || it.height || 11,
+        family,
+      }
     })
   return { items, width: vp.width, height: vp.height }
 }
@@ -74,7 +81,12 @@ function toParagraphs(lines) {
   return paragraphs
 }
 
-const wordFont = (family) => (/mono|courier/i.test(family) ? 'Courier New' : /serif/i.test(family) && !/sans/i.test(family) ? 'Times New Roman' : 'Arial')
+const wordFont = (family) =>
+  /mono|courier/i.test(family)
+    ? 'Courier New'
+    : /serif/i.test(family) && !/sans/i.test(family)
+      ? 'Times New Roman'
+      : 'Arial'
 
 /** Flowing text: paragraphs, headings and page breaks, no positioning. */
 async function flowingDocument(pdf, progress) {
@@ -157,7 +169,12 @@ async function layoutDocument(file, pdf, progress) {
       )
     }
     sections.push({
-      properties: { page: { size: { width: twips(width), height: twips(height) }, margin: { top: 0, right: 0, bottom: 0, left: 0, header: 0, footer: 0 } } },
+      properties: {
+        page: {
+          size: { width: twips(width), height: twips(height) },
+          margin: { top: 0, right: 0, bottom: 0, left: 0, header: 0, footer: 0 },
+        },
+      },
       children,
     })
     progress?.(n, pdf.numPages)
@@ -169,7 +186,10 @@ async function layoutDocument(file, pdf, progress) {
 export async function pdfToDocx(file, { layout = true } = {}, progress) {
   const pdf = await getPdf(file)
   const doc = layout ? await layoutDocument(file, pdf, progress) : await flowingDocument(pdf, progress)
-  if (!doc) throw new UserError('This PDF has no selectable text — it’s probably a scan. Run OCR PDF on it first, then convert.')
+  if (!doc)
+    throw new UserError(
+      'This PDF has no selectable text — it’s probably a scan. Run OCR PDF on it first, then convert.',
+    )
   return Packer.toBlob(doc)
 }
 

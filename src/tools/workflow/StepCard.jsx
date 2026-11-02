@@ -14,7 +14,11 @@ export default function StepCard({ step, index, count, open, onToggle, onChange,
   const fields = def.fields.filter((f) => !f.when || f.when(step.opts))
   const needs = def.validate?.(step.opts)
   return (
-    <li className={`wf-step ${open ? 'is-open' : ''} ${dragOver ? 'is-over' : ''}`} style={{ '--c': tool.color, '--i': index }} {...drag}>
+    <li
+      className={`wf-step ${open ? 'is-open' : ''} ${dragOver ? 'is-over' : ''}`}
+      style={{ '--c': tool.color, '--i': index }}
+      {...drag}
+    >
       <div className="wf-step-head">
         <span className="wf-grip" aria-hidden="true">
           <GripVertical size={16} />
@@ -26,17 +30,34 @@ export default function StepCard({ step, index, count, open, onToggle, onChange,
           <small className={needs ? 'wf-needs' : ''}>{needs ? `Needs: ${needs}` : def.summary(step.opts)}</small>
         </button>
         <span className="wf-step-tools">
-          <button type="button" className="icon-btn" aria-label="Move up" disabled={index === 0} onClick={() => onMove(-1)}>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Move up"
+            disabled={index === 0}
+            onClick={() => onMove(-1)}
+          >
             <ArrowUp size={16} />
           </button>
-          <button type="button" className="icon-btn" aria-label="Move down" disabled={index === count - 1} onClick={() => onMove(1)}>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Move down"
+            disabled={index === count - 1}
+            onClick={() => onMove(1)}
+          >
             <ArrowDown size={16} />
           </button>
           <button type="button" className="icon-btn" aria-label={`Remove ${def.label}`} onClick={onRemove}>
             <Trash2 size={16} />
           </button>
           {fields.length > 0 && (
-            <button type="button" className="icon-btn wf-chev" aria-label={open ? 'Hide options' : 'Show options'} onClick={onToggle}>
+            <button
+              type="button"
+              className="icon-btn wf-chev"
+              aria-label={open ? 'Hide options' : 'Show options'}
+              onClick={onToggle}
+            >
               <ChevronDown size={18} />
             </button>
           )}

@@ -20,7 +20,10 @@ const SITE = (process.env.SITE_URL || '').replace(/\/+$/, '')
 // Google Search Console → Settings → Ownership verification → HTML tag: the content="…" value.
 const GOOGLE_VERIFICATION = process.env.GOOGLE_SITE_VERIFICATION || ''
 const BING_VERIFICATION = process.env.BING_SITE_VERIFICATION || ''
-if (!SITE) console.warn('[prerender] SITE_URL is not set — skipping canonical URLs and sitemap.xml. Example: SITE_URL=https://pdfwise.example npm run build')
+if (!SITE)
+  console.warn(
+    '[prerender] SITE_URL is not set — skipping canonical URLs and sitemap.xml. Example: SITE_URL=https://pdfwise.example npm run build',
+  )
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const json = (o) => JSON.stringify(o).replace(/</g, '\\u003c')
@@ -41,9 +44,15 @@ function head(page) {
     `<meta name="twitter:title" content="${esc(title)}" />`,
     `<meta name="twitter:description" content="${esc(description)}" />`,
   ]
-  if (SITE) tags.push(`<link rel="canonical" href="${abs(page.path)}" />`, `<meta property="og:url" content="${abs(page.path)}" />`)
-  if (page.path === '/' && GOOGLE_VERIFICATION) tags.push(`<meta name="google-site-verification" content="${esc(GOOGLE_VERIFICATION)}" />`)
-  if (page.path === '/' && BING_VERIFICATION) tags.push(`<meta name="msvalidate.01" content="${esc(BING_VERIFICATION)}" />`)
+  if (SITE)
+    tags.push(
+      `<link rel="canonical" href="${abs(page.path)}" />`,
+      `<meta property="og:url" content="${abs(page.path)}" />`,
+    )
+  if (page.path === '/' && GOOGLE_VERIFICATION)
+    tags.push(`<meta name="google-site-verification" content="${esc(GOOGLE_VERIFICATION)}" />`)
+  if (page.path === '/' && BING_VERIFICATION)
+    tags.push(`<meta name="msvalidate.01" content="${esc(BING_VERIFICATION)}" />`)
   for (const ld of jsonLd(page)) tags.push(`<script type="application/ld+json">${json(ld)}</script>`)
   return tags.join('\n    ')
 }
@@ -74,7 +83,11 @@ function jsonLd(page) {
   out.push({
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: page.seo.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+    mainEntity: page.seo.faq.map(([q, a]) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
   })
   if (SITE) {
     out.push({
@@ -113,12 +126,18 @@ function body(page) {
   const t = page.tool
   const steps = page.seo.steps.map((s) => `<li>${esc(s)}</li>`).join('')
   const faq = page.seo.faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join('')
-  const related = (page.slug ? [t.id, ...t.related] : t.related).map((id) => TOOLS.find((x) => x.id === id)).filter(Boolean)
+  const related = (page.slug ? [t.id, ...t.related] : t.related)
+    .map((id) => TOOLS.find((x) => x.id === id))
+    .filter(Boolean)
   const more = moreLinks(t, page.slug)
   const about = page.seo.about ? `<p>${esc(page.seo.about)}</p>` : ''
-  const moreHtml = more.length ? `<h2>More ways to get it done</h2><ul>${more.map((m) => `<li><a href="${m.path}">${esc(m.name)}</a></li>`).join('')}</ul>` : ''
+  const moreHtml = more.length
+    ? `<h2>More ways to get it done</h2><ul>${more.map((m) => `<li><a href="${m.path}">${esc(m.name)}</a></li>`).join('')}</ul>`
+    : ''
   return `<main class="seo-static"><nav><a href="/">${esc(BRAND)}</a></nav><h1>${esc(page.name)}</h1><p>${esc(page.seo.lead ?? t.description)}</p>${about}<h2>How to use ${esc(page.name)}</h2><ol>${steps}</ol><h2>Frequently asked questions</h2>${faq}${moreHtml}${
-    related.length ? `<h2>Related tools</h2><ul>${related.map((r) => `<li><a href="/${r.id}">${esc(r.name)}</a></li>`).join('')}</ul>` : ''
+    related.length
+      ? `<h2>Related tools</h2><ul>${related.map((r) => `<li><a href="/${r.id}">${esc(r.name)}</a></li>`).join('')}</ul>`
+      : ''
   }</main>`
 }
 
@@ -138,17 +157,29 @@ for (const page of pages) {
 writeFileSync(
   path.join(dist, '404.html'),
   template
-    .replace(/<title>[\s\S]*?<\/title>/, `<title>Page not found — ${esc(BRAND)}</title>\n    <meta name="robots" content="noindex" />`)
-    .replace('<div id="root"></div>', `<div id="root"><main class="seo-static"><h1>Page not found</h1><p><a href="/">See all ${esc(BRAND)} tools</a></p></main></div>`),
+    .replace(
+      /<title>[\s\S]*?<\/title>/,
+      `<title>Page not found — ${esc(BRAND)}</title>\n    <meta name="robots" content="noindex" />`,
+    )
+    .replace(
+      '<div id="root"></div>',
+      `<div id="root"><main class="seo-static"><h1>Page not found</h1><p><a href="/">See all ${esc(BRAND)} tools</a></p></main></div>`,
+    ),
 )
 
 const robots = ['User-agent: *', 'Allow: /', 'Disallow: /api/']
 if (SITE) {
   const today = new Date().toISOString().slice(0, 10)
   const urls = pages
-    .map((p) => `  <url><loc>${abs(p.path)}</loc><lastmod>${today}</lastmod><priority>${p.path === '/' ? '1.0' : p.slug ? '0.7' : '0.8'}</priority></url>`)
+    .map(
+      (p) =>
+        `  <url><loc>${abs(p.path)}</loc><lastmod>${today}</lastmod><priority>${p.path === '/' ? '1.0' : p.slug ? '0.7' : '0.8'}</priority></url>`,
+    )
     .join('\n')
-  writeFileSync(path.join(dist, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`)
+  writeFileSync(
+    path.join(dist, 'sitemap.xml'),
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
+  )
   robots.push('', `Sitemap: ${abs('/sitemap.xml')}`)
 }
 writeFileSync(path.join(dist, 'robots.txt'), `${robots.join('\n')}\n`)
@@ -172,4 +203,6 @@ const llms = [
   '',
 ]
 writeFileSync(path.join(dist, 'llms.txt'), llms.join('\n'))
-console.log(`[prerender] wrote ${pages.length} pages${SITE ? ', sitemap.xml' : ''}, robots.txt and llms.txt${GOOGLE_VERIFICATION ? ' (+ Google verification tag)' : ''}`)
+console.log(
+  `[prerender] wrote ${pages.length} pages${SITE ? ', sitemap.xml' : ''}, robots.txt and llms.txt${GOOGLE_VERIFICATION ? ' (+ Google verification tag)' : ''}`,
+)

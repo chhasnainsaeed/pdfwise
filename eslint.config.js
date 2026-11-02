@@ -45,6 +45,8 @@ export default [
   {
     // The service worker template runs in a worker, with build-time placeholders.
     files: ['scripts/sw-template.js'],
-    languageOptions: { globals: { ...globals.serviceworker, __PRECACHE_CORE__: 'readonly', __PRECACHE_REST__: 'readonly' } },
+    languageOptions: {
+      globals: { ...globals.serviceworker, __PRECACHE_CORE__: 'readonly', __PRECACHE_REST__: 'readonly' },
+    },
   },
 ]
