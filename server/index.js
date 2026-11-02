@@ -145,8 +145,10 @@ app.use((err, req, res, next) => {
 
 const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 if (existsSync(dist)) {
-  app.use(express.static(dist))
-  app.get('*', (req, res, next) => (req.path.startsWith('/api/') ? next() : res.sendFile(path.join(dist, 'index.html'))))
+  // Pre-rendered pages are dist/<page>.html, served at /<page>. Anything else is a 404 that
+  // still loads the app (which shows its own "not found" page).
+  app.use(express.static(dist, { extensions: ['html'] }))
+  app.get('*', (req, res, next) => (req.path.startsWith('/api/') ? next() : res.status(404).sendFile(path.join(dist, 'index.html'))))
 }
 
 app.listen(PORT, HOST, () => {

@@ -1,7 +1,8 @@
-import { ChevronDown, Menu, X } from 'lucide-react'
+import { ChevronDown, Menu, Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { BRAND, CATEGORIES, TOOLS, TOOLS_BY_ID } from '../tools.js'
+import { openPalette } from '../lib/events.js'
 import Logo from './Logo.jsx'
 import ToolIcon from './ToolIcon.jsx'
 
@@ -94,6 +95,12 @@ export default function Header() {
             </div>
           </Dropdown>
         </nav>
+
+        <button type="button" className="search-btn" onClick={openPalette} aria-label="Search tools (Ctrl+K)">
+          <Search size={18} />
+          <span className="search-btn-text">Search tools</span>
+          <kbd>Ctrl K</kbd>
+        </button>
 
         <button
           type="button"

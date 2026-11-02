@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
+import CommandPalette from './components/CommandPalette.jsx'
 import Footer from './components/Footer.jsx'
 import Header from './components/Header.jsx'
 import Home from './components/Home.jsx'
@@ -31,6 +32,7 @@ export default function App() {
         </Suspense>
       </main>
       {isHome && <Footer />}
+      <CommandPalette />
     </div>
   )
 }

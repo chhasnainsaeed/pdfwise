@@ -1,22 +1,22 @@
-import { ArrowLeft, Download, FileText, RotateCcw, Server, ShieldCheck, Upload } from 'lucide-react'
+import { ArrowLeft, ClipboardPaste, Download, FileText, RotateCcw, Server, ShieldCheck, Upload } from 'lucide-react'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { KINDS, PDF_TYPE, acceptFor, formatBytes, friendlyError, matchesKind, packResult, sleep, uid } from '../lib/files.js'
+import { clearHandoff, handOff, peekHandoff, rememberTool } from '../lib/handoff.js'
 import { SessionContext } from '../lib/hooks.js'
-import { BRAND, TOOLS_BY_ID } from '../tools.js'
+import { ALIASES, TOOL_SEO, applyHead } from '../seo.js'
+import { TOOLS_BY_ID } from '../tools.js'
 import { TOOL_COMPONENTS } from '../tools/index.jsx'
 import ToolIcon from './ToolIcon.jsx'
-
-// Files handed from one tool's result to the next ("Continue with…").
-let handoff = null
 
 const hasFiles = (e) => Array.from(e.dataTransfer?.types ?? []).includes('Files')
 
 export default function ToolPage() {
   const { toolId } = useParams()
-  const tool = TOOLS_BY_ID[toolId]
+  const alias = ALIASES[toolId]
+  const tool = TOOLS_BY_ID[alias?.tool ?? toolId]
   if (!tool) return <NotFound />
-  return <ToolSession key={toolId} tool={tool} />
+  return <ToolSession key={toolId} tool={tool} alias={alias} />
 }
 
 function NotFound() {
@@ -31,11 +31,12 @@ function NotFound() {
   )
 }
 
-function ToolSession({ tool }) {
+function ToolSession({ tool, alias }) {
   // URL-based tools (HTML to PDF) skip the upload step entirely.
   const usesFiles = !tool.urlInput
-  const [files, setFiles] = useState(() => (handoff?.tool === tool.id ? handoff.items : []))
-  const [stage, setStage] = useState(() => (!usesFiles || handoff?.tool === tool.id ? 'work' : 'upload'))
+  const [incoming] = useState(() => peekHandoff(tool.id))
+  const [files, setFiles] = useState(() => incoming?.items ?? [])
+  const [stage, setStage] = useState(() => (!usesFiles || incoming?.items?.length ? 'work' : 'upload'))
   const [session, setSession] = useState(0)
   const [error, setError] = useState('')
   const [progress, setProgress] = useState(null)
@@ -43,12 +44,12 @@ function ToolSession({ tool }) {
   const [dropping, setDropping] = useState(false)
 
   useEffect(() => {
-    handoff = null
-  }, [])
+    clearHandoff()
+    rememberTool(tool.id)
+  }, [tool.id])
 
-  useEffect(() => {
-    document.title = `${tool.name} — ${BRAND}`
-  }, [tool])
+  const seo = alias?.seo ?? TOOL_SEO[tool.id]
+  useEffect(() => applyHead(seo), [seo])
 
   useEffect(() => () => result && URL.revokeObjectURL(result.url), [result])
 
@@ -118,11 +119,22 @@ function ToolSession({ tool }) {
       setDropping(false)
       if (acceptsDrop) addFiles(e.dataTransfer.files)
     }
+    // Ctrl+V: pasted files (screenshots, copied PDFs) join the session like dropped ones.
+    const paste = (e) => {
+      if (e.target.closest?.('input, textarea, [contenteditable="true"]')) return
+      const pasted = Array.from(e.clipboardData?.files ?? [])
+      if (pasted.length && acceptsDrop) {
+        e.preventDefault()
+        addFiles(pasted)
+      }
+    }
+    window.addEventListener('paste', paste)
     window.addEventListener('dragenter', enter)
     window.addEventListener('dragover', over)
     window.addEventListener('dragleave', leave)
     window.addEventListener('drop', drop)
     return () => {
+      window.removeEventListener('paste', paste)
       window.removeEventListener('dragenter', enter)
       window.removeEventListener('dragover', over)
       window.removeEventListener('dragleave', leave)
@@ -139,11 +151,17 @@ function ToolSession({ tool }) {
   }
 
   const Workspace = TOOL_COMPONENTS[tool.id]
-  const ctx = { tool, files, setFiles, addFiles, run, error, setError, accept: usesFiles ? acceptFor(tool.kind) : '' }
+  const preset = { target: alias?.target, url: incoming?.url }
+  const ctx = { tool, files, setFiles, addFiles, run, error, setError, preset, accept: usesFiles ? acceptFor(tool.kind) : '' }
 
   return (
     <SessionContext.Provider value={ctx}>
-      {stage === 'upload' && <UploadStage tool={tool} onFiles={addFiles} error={error} />}
+      {stage === 'upload' && (
+        <>
+          <UploadStage tool={tool} title={alias?.name} lead={seo.lead} onFiles={addFiles} error={error} />
+          <ToolGuide tool={tool} title={alias?.name ?? tool.name} seo={seo} />
+        </>
+      )}
       {stage !== 'upload' && (
         <div className="workspace-host" hidden={stage === 'done'}>
           <Suspense
@@ -173,20 +191,26 @@ function ToolSession({ tool }) {
   )
 }
 
-function UploadStage({ tool, onFiles, error }) {
+function UploadStage({ tool, title, lead, onFiles, error }) {
   const input = useRef(null)
   const noun = KINDS[tool.kind].label
   const plural = tool.multiple ? `${noun} files` : `${noun} file`
   return (
     <div className="stage-center upload-stage" style={{ '--c': tool.color }}>
-      <ToolIcon tool={tool} size="lg" />
-      <h1 className="stage-title">{tool.name}</h1>
-      <p className="stage-lead">{tool.description}</p>
+      <div className="icon-orbit" aria-hidden="true">
+        <span className="orbit-ring" />
+        <span className="orbit-ring orbit-ring-2" />
+        <ToolIcon tool={tool} size="lg" />
+      </div>
+      <h1 className="stage-title">{title ?? tool.name}</h1>
+      <p className="stage-lead">{lead ?? tool.description}</p>
       <button type="button" className="btn btn-primary btn-xl" onClick={() => input.current.click()}>
         <Upload size={22} />
         Select {plural}
       </button>
-      <p className="upload-hint">or drop {plural} anywhere on this page</p>
+      <p className="upload-hint">
+        or drop {plural} anywhere on this page · <ClipboardPaste size={14} /> paste with <kbd>Ctrl</kbd>+<kbd>V</kbd>
+      </p>
       <input
         ref={input}
         type="file"
@@ -248,7 +272,7 @@ function DoneStage({ tool, result, onBack, onRestart }) {
   const related = isPdf ? tool.related.map((id) => TOOLS_BY_ID[id]).filter(Boolean) : []
 
   const continueWith = (id) => {
-    handoff = { tool: id, items: [{ id: uid(), file: new File([result.blob], result.name, { type: PDF_TYPE }) }] }
+    handOff(id, [{ id: uid(), file: new File([result.blob], result.name, { type: PDF_TYPE }) }])
     navigate(`/${id}`)
   }
 
@@ -310,5 +334,45 @@ function CompressStats({ stats }) {
         </p>
       </div>
     </div>
+  )
+}
+
+/** How-to steps, FAQ and related tools under the upload area — for people and search engines. */
+function ToolGuide({ tool, title, seo }) {
+  const related = tool.related.map((id) => TOOLS_BY_ID[id]).filter(Boolean)
+  return (
+    <section className="tool-guide" aria-labelledby="guide-title">
+      <h2 id="guide-title">How to use {title}</h2>
+      <ol className="guide-steps">
+        {seo.steps.map((step, i) => (
+          <li key={i}>
+            <span className="guide-num">{i + 1}</span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+      <h2>Frequently asked questions</h2>
+      <div className="guide-faq">
+        {seo.faq.map(([q, a]) => (
+          <details key={q}>
+            <summary>{q}</summary>
+            <p>{a}</p>
+          </details>
+        ))}
+      </div>
+      {related.length > 0 && (
+        <>
+          <h2>Related tools</h2>
+          <div className="continue-grid">
+            {related.map((t) => (
+              <Link key={t.id} to={`/${t.id}`} className="continue-item">
+                <ToolIcon tool={t} size="sm" />
+                <span>{t.name}</span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   )
 }

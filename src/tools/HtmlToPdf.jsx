@@ -7,8 +7,8 @@ import { useSession } from '../lib/hooks.js'
 import { convertUrlOnServer, normalizeUrl, serverStatus } from '../lib/server.js'
 
 export default function HtmlToPdf() {
-  const { run } = useSession()
-  const [url, setUrl] = useState('')
+  const { run, preset } = useSession()
+  const [url, setUrl] = useState(preset?.url ?? '')
   const [format, setFormat] = useState('A4')
   const [orientation, setOrientation] = useState('portrait')
   const [margin, setMargin] = useState('small')
