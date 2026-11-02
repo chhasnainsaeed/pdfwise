@@ -311,6 +311,18 @@ single tool.
   the pointer. Click a page to open that tool. The scene loads in its own chunk after the page is
   idle, pauses when off-screen, and stays still with “reduce motion” turned on.
 
+## Code standards
+
+```bash
+npm run lint      # ESLint: recommended JavaScript, React and Hooks rules, no unused code
+npm run format    # Prettier: formats every file (no semicolons, single quotes, 120 columns)
+npm test          # registry, SEO, search and workflow checks
+npm run check     # all three; run before committing
+```
+
+Configs: [eslint.config.js](eslint.config.js), [.prettierrc.json](.prettierrc.json) and
+[.editorconfig](.editorconfig). Formatting-only commits are listed in `.git-blame-ignore-revs`.
+
 ## Adding a tool
 
 ```bash
