@@ -79,6 +79,8 @@ conversion. The server listens on 127.0.0.1 by default; set `BASIC_AUTH` before 
 | `SOFFICE_PATH`, `CHROME_PATH` | auto-detected       |                                                                                                                                                                                       |
 | `CHROME_NO_SANDBOX`           | off                 | `1` launches Chromium with `--no-sandbox`, which most containers need (the [Dockerfile](Dockerfile) sets it). Leave it off elsewhere: the sandbox is what contains a hostile web page |
 | `MAX_UPLOAD_MB`               | `100`               |                                                                                                                                                                                       |
+| `MAX_PENDING_CONVERSIONS`     | `8`                 | conversions in progress at once; more get 503 + `Retry-After`                                                                                                                         |
+| `MAX_UNZIPPED_MB`             | `300`               | largest unpacked size of an Office archive (zip-bomb guard)                                                                                                                           |
 | `CONVERT_TIMEOUT_S`           | `120`               |                                                                                                                                                                                       |
 | `CONVERT_CONCURRENCY`         | `2`                 | parallel LibreOffice instances                                                                                                                                                        |
 | `BROWSER_CONCURRENCY`         | `3`                 | parallel browser pages                                                                                                                                                                |
@@ -310,6 +312,35 @@ single tool.
 - **3D home page**: every tool floats as a page in a [three.js](https://threejs.org/) scene that follows
   the pointer. Click a page to open that tool. The scene loads in its own chunk after the page is
   idle, pauses when off-screen, and stays still with “reduce motion” turned on.
+
+## Contributing
+
+The way changes reach `main`:
+
+1. **Branch:** create a branch from `main` for each change (`git switch -c fix-merge-order`).
+2. **Check:** run `npm run check` (lint, formatting, tests) before pushing.
+3. **Pull request:** open one into `main`. The template asks what changed, how it was tested,
+   and the security checklist.
+4. **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every push and pull
+   request:
+   - lint and formatting
+   - tests
+   - `npm audit` (it fails on high or critical advisories)
+   - the production build
+   - a Docker build that starts the server and checks its health, pages, 404 and security headers
+5. **Review and merge:** merge when CI is green and the change has been reviewed.
+
+**Turn on branch protection once** (GitHub → Settings → Branches → Add rule for `main`):
+
+- require a pull request with 1 approval and code-owner review ([.github/CODEOWNERS](.github/CODEOWNERS))
+- require the **CI** checks to pass
+- block force pushes
+
+Also turn on **private vulnerability reporting** and **Dependabot alerts** under Settings → Code
+security. [.github/dependabot.yml](.github/dependabot.yml) then opens weekly update pull requests,
+and security fixes as soon as they're published.
+
+Security design and how to report a vulnerability: [SECURITY.md](SECURITY.md).
 
 ## Code standards
 
