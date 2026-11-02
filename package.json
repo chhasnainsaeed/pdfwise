@@ -1,0 +1,37 @@
+{
+  "name": "pdfwise",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server/index.js",
+    "start": "vite build && node server/index.js"
+  },
+  "dependencies": {
+    "@neslinesli93/qpdf-wasm": "^0.3.0",
+    "@xmldom/xmldom": "^0.9.12",
+    "docx": "^9.0.2",
+    "docx-preview": "^0.4.1",
+    "exceljs": "^4.4.0",
+    "express": "^4.22.2",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.460.0",
+    "mammoth": "^1.13.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "puppeteer-core": "^25.14.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "tesseract.js": "^5.1.1",
+    "word-extractor": "^1.0.4",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}
