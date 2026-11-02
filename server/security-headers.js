@@ -10,8 +10,11 @@ export const ANALYTICS_ORIGINS = ['https://plausible.io', 'https://cloud.umami.i
 // OCR language data (data only: the OCR engine itself is served from this site).
 const OCR_DATA = 'https://tessdata.projectnaptha.com'
 
-/** `extraOrigins`: self-hosted analytics, e.g. from VITE_PLAUSIBLE_SRC. */
-export function contentSecurityPolicy(extraOrigins = []) {
+/**
+ * `extraOrigins`: self-hosted analytics, e.g. from VITE_PLAUSIBLE_SRC.
+ * `uploadOrigins`: where serverless hosting stores files during a conversion (an S3 bucket).
+ */
+export function contentSecurityPolicy(extraOrigins = [], uploadOrigins = []) {
   const analytics = [...ANALYTICS_ORIGINS, ...extraOrigins].join(' ')
   return [
     "default-src 'self'",
@@ -22,7 +25,7 @@ export function contentSecurityPolicy(extraOrigins = []) {
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
     "img-src 'self' data: blob:",
-    `connect-src 'self' blob: data: ${OCR_DATA} ${analytics}`,
+    `connect-src 'self' blob: data: ${[OCR_DATA, analytics, ...uploadOrigins].join(' ')}`,
     "media-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
@@ -33,9 +36,9 @@ export function contentSecurityPolicy(extraOrigins = []) {
 }
 
 /** Header name → value. HSTS is added separately, only on HTTPS. */
-export function securityHeaders(extraOrigins = []) {
+export function securityHeaders(extraOrigins = [], uploadOrigins = []) {
   return {
-    'Content-Security-Policy': contentSecurityPolicy(extraOrigins),
+    'Content-Security-Policy': contentSecurityPolicy(extraOrigins, uploadOrigins),
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'X-Frame-Options': 'SAMEORIGIN',

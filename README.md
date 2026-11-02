@@ -95,7 +95,14 @@ conversion. The server listens on 127.0.0.1 by default; set `BASIC_AUTH` before 
 
 ## Deploy
 
-### VPS with Docker (recommended for production)
+### AWS free tier (S3 + CloudFront + Lambda)
+
+[infra/aws.yml](infra/aws.yml) hosts the site on S3 behind CloudFront and runs the conversion
+server on Lambda, inside AWS's Always Free allowances at launch traffic. AWS CodeBuild deploys every
+push to `main` through a GitHub connection, so no AWS keys are stored in GitHub. Setup and costs:
+[docs/aws.md](docs/aws.md).
+
+### VPS with Docker
 
 [docker-compose.yml](docker-compose.yml) runs two containers:
 
@@ -433,6 +440,7 @@ server/
   egress-proxy.js     the checking proxy all headless-browser traffic goes through
   url-guard.js        address checks shared by the proxy and request interception
 deploy/Caddyfile, docker-compose.yml, Dockerfile, .env.example   production deployment (see Deploy)
+infra/aws.yml, infra/buildspec.yml, scripts/deploy-aws.sh   AWS hosting and deploys (docs/aws.md)
 ```
 
 To rename the product, change `BRAND` in `src/tools.js`, the `<title>` in `index.html`, and the

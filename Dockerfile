@@ -11,8 +11,9 @@
 #                --build-arg GOOGLE_SITE_VERIFICATION=... -t pdfwise .
 # For production on a VPS, docker-compose.yml runs this with Caddy (automatic HTTPS) in front.
 
-# puppeteer-core needs Node >= 22.12; the 22 tag is always a recent 22.x.
-FROM node:22-bookworm-slim
+# puppeteer-core needs Node >= 22.12; the 22 tag is always a recent 22.x. Pulled from the Docker
+# official images mirror on Amazon ECR Public, which has no Docker Hub pull limits.
+FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS app
 
 ARG INCLUDE_LIBREOFFICE=false
 
@@ -65,3 +66,25 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 USER node
 
 CMD ["node", "server/index.js"]
+
+# AWS Lambda image (`docker build --target lambda --provenance=false`): the same server, run by the
+# Lambda Web Adapter, which turns Lambda invocations into HTTP requests to port 3001. CloudFront
+# serves the site from S3, so the built pages aren't needed here. Lambda's file system is read-only
+# except /tmp, and it has no /dev/shm or user namespaces, hence the Chromium flags.
+FROM app AS lambda
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 /lambda-adapter /opt/extensions/lambda-adapter
+USER root
+RUN rm -rf /app/dist
+USER node
+ENV HOST=127.0.0.1 \
+    HOME=/tmp \
+    XDG_CACHE_HOME=/tmp/.cache \
+    XDG_CONFIG_HOME=/tmp/.config \
+    CHROME_ARGS="--disable-dev-shm-usage --no-zygote" \
+    BROWSER_CONCURRENCY=1 \
+    MAX_PENDING_CONVERSIONS=1 \
+    AWS_LWA_PORT=3001 \
+    AWS_LWA_READINESS_CHECK_PATH=/healthz
+
+# The default build (Docker, docker-compose, VPS) stays the full app.
+FROM app

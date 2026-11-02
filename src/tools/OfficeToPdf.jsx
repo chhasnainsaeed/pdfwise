@@ -39,7 +39,7 @@ export default function OfficeToPdf() {
       const out = []
       for (let i = 0; i < files.length; i++) {
         const { file } = files[i]
-        out.push({ name: `${baseName(file.name)}.pdf`, type: PDF_TYPE, data: await convertOnServer(file) })
+        out.push({ name: `${baseName(file.name)}.pdf`, type: PDF_TYPE, data: await convertOnServer(file, status) })
         progress(i + 1, files.length)
       }
       return { files: out, zipName: 'converted-pdfs.zip' }

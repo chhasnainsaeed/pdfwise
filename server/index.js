@@ -1,13 +1,14 @@
 // PDFwise conversion server.
 //   POST /api/convert/pdf   Office document → PDF (LibreOffice if installed, else the built-in converter)
 //   POST /api/convert/url   Web page → PDF (installed Chrome/Edge)
+//   POST /api/upload        With UPLOAD_BUCKET (AWS Lambda): a signed S3 URL to upload the file to first
 // Also serves the production build from ../dist when it exists.
 //
 //   npm run server            # http://127.0.0.1:3001
 //
 // Environment: PORT, HOST, MAX_PENDING_CONVERSIONS, MAX_UNZIPPED_MB, CONVERTER (auto | libreoffice | builtin), SOFFICE_PATH, CHROME_PATH,
 // MAX_UPLOAD_MB, CONVERT_TIMEOUT_S, CONVERT_CONCURRENCY, BROWSER_CONCURRENCY, ALLOW_PRIVATE_URLS,
-// BASIC_AUTH (user:password), RATE_LIMIT_PER_MIN, TRUST_PROXY, CHROME_NO_SANDBOX
+// BASIC_AUTH (user:password), RATE_LIMIT_PER_MIN, TRUST_PROXY, CHROME_NO_SANDBOX, CHROME_ARGS, UPLOAD_BUCKET
 
 import express from 'express'
 import { createHash, timingSafeEqual } from 'node:crypto'
@@ -19,6 +20,7 @@ import { HSTS, securityHeaders } from './security-headers.js'
 import { findBrowser, renderPdf } from './engines/browser.js'
 import { LIBREOFFICE_FORMATS, findSoffice, libreofficeToPdf } from './engines/libreoffice.js'
 import { BUILTIN_FORMATS, BUILTIN_NOTES, officeDocument } from './office/index.js'
+import { UPLOAD_BUCKET, publishResult, takeUpload, uploadTarget } from './uploads.js'
 import { urlProblem } from './url-guard.js'
 import { HttpError } from './util.js'
 
@@ -102,6 +104,7 @@ app.use((req, res, next) => {
 app.get('/healthz', (req, res) => res.type('text/plain').send('ok'))
 if (BASIC_AUTH) app.use(requireAuth)
 app.use('/api/convert', rateLimit, admit)
+app.use('/api/upload', rateLimit)
 
 app.get('/api/health', (req, res) => {
   const engine = officeEngine()
@@ -113,43 +116,76 @@ app.get('/api/health', (req, res) => {
     libreoffice: Boolean(findSoffice()),
     browser: Boolean(findBrowser()),
     maxUploadMb: MAX_UPLOAD_MB,
+    // 's3': upload to /api/upload's signed URL first, and download the PDF from the returned URL.
+    uploads: UPLOAD_BUCKET ? 's3' : 'direct',
   })
 })
 
-app.post('/api/convert/pdf', express.raw({ type: () => true, limit: `${MAX_UPLOAD_MB}mb` }), async (req, res) => {
-  let name = ''
-  try {
-    name = decodeURIComponent(req.get('x-file-name') || '')
-  } catch {
-    // Malformed header; rejected by the extension check below.
-  }
-  const ext = path.extname(name).slice(1).toLowerCase()
+/** Sends the PDF itself, or with UPLOAD_BUCKET a short-lived link to it (Lambda caps responses at 6 MB). */
+async function sendPdf(res, pdf) {
+  if (UPLOAD_BUCKET) res.json({ url: await publishResult(pdf) })
+  else res.type('application/pdf').send(pdf)
+}
+
+/** The uploaded document: the raw request body, or with UPLOAD_BUCKET the file named by `key`. */
+const officeUpload = UPLOAD_BUCKET
+  ? [express.json({ limit: '4kb' }), async (req) => ({ name: req.body?.name, body: await takeUpload(req.body?.key) })]
+  : [
+      express.raw({ type: () => true, limit: `${MAX_UPLOAD_MB}mb` }),
+      async (req) => {
+        try {
+          return { name: decodeURIComponent(req.get('x-file-name') || ''), body: req.body }
+        } catch {
+          // Malformed header; rejected by the extension check.
+          return { name: '', body: req.body }
+        }
+      },
+    ]
+
+if (UPLOAD_BUCKET) {
+  app.post('/api/upload', express.json({ limit: '4kb' }), async (req, res) => {
+    try {
+      res.json(await uploadTarget(req.body?.size, MAX_UPLOAD_MB * 1024 * 1024))
+    } catch (e) {
+      if (!(e instanceof HttpError)) console.error('[upload]', e)
+      res.status(e.status || 500).json({ error: e instanceof HttpError ? e.message : 'Couldn’t start the upload.' })
+    }
+  })
+}
+
+app.post('/api/convert/pdf', officeUpload[0], async (req, res) => {
   const engine = officeEngine()
   if (!engine.name) {
     return res
       .status(503)
       .json({ error: 'No converter is available: install LibreOffice, or Chrome/Edge for the built-in converter.' })
   }
-  if (!engine.formats.includes(ext)) {
-    const extra =
-      engine.name === 'builtin' && LIBREOFFICE_FORMATS.includes(ext) ? ' It needs LibreOffice on the server.' : ''
-    return res
-      .status(415)
-      .json({ error: `.${ext || '?'} files can’t be converted here.${extra} Supported: ${engine.formats.join(', ')}.` })
-  }
-  if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: 'The file is empty.' })
   const started = Date.now()
   try {
-    if (ZIP_FORMATS.has(ext)) checkArchive(req.body)
+    const { name, body } = await officeUpload[1](req)
+    const ext = path
+      .extname(typeof name === 'string' ? name : '')
+      .slice(1)
+      .toLowerCase()
+    if (!engine.formats.includes(ext)) {
+      const extra =
+        engine.name === 'builtin' && LIBREOFFICE_FORMATS.includes(ext) ? ' It needs LibreOffice on the server.' : ''
+      throw new HttpError(
+        415,
+        `.${ext || '?'} files can’t be converted here.${extra} Supported: ${engine.formats.join(', ')}.`,
+      )
+    }
+    if (!Buffer.isBuffer(body) || body.length === 0) throw new HttpError(400, 'The file is empty.')
+    if (ZIP_FORMATS.has(ext)) checkArchive(body)
     const title = path.basename(name, path.extname(name)).slice(0, 200)
     const pdf =
       engine.name === 'libreoffice'
-        ? await libreofficeToPdf(req.body, ext)
-        : await renderPdf(await officeDocument(req.body, ext), { title })
+        ? await libreofficeToPdf(body, ext)
+        : await renderPdf(await officeDocument(body, ext), { title })
     console.log(
-      `[convert] .${ext} ${(req.body.length / 1024).toFixed(0)} KB → PDF via ${engine.name} in ${Date.now() - started} ms`,
+      `[convert] .${ext} ${(body.length / 1024).toFixed(0)} KB → PDF via ${engine.name} in ${Date.now() - started} ms`,
     )
-    res.type('application/pdf').send(pdf)
+    await sendPdf(res, pdf)
   } catch (e) {
     if (!(e instanceof HttpError)) console.error('[convert]', e)
     res.status(e.status || 500).json({ error: e instanceof HttpError ? e.message : 'Conversion failed on the server.' })
@@ -175,7 +211,7 @@ app.post('/api/convert/url', express.json({ limit: '16kb' }), async (req, res) =
       },
     )
     console.log(`[url] ${new URL(target).hostname} → PDF in ${Date.now() - started} ms`)
-    res.type('application/pdf').send(pdf)
+    await sendPdf(res, pdf)
   } catch (e) {
     if (!(e instanceof HttpError)) console.error('[url]', e)
     res.status(e.status || 500).json({ error: e instanceof HttpError ? e.message : 'Couldn’t convert that page.' })

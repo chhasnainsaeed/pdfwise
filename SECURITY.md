@@ -36,6 +36,11 @@ server.
 - **Uploads:** size-limited (`MAX_UPLOAD_MB`). Office archives are checked for zip bombs before any
   parser runs (`server/archive.js`: unpacked size, entry count, compression ratio). At most
   `MAX_PENDING_CONVERSIONS` run at once, so memory can't be exhausted by parallel uploads.
+- **On AWS** ([docs/aws.md](docs/aws.md)): files travel through a private S3 bucket with signed URLs
+  that expire after 5 minutes and fit one exact file size. The server only accepts keys it issued,
+  deletes each input once read, and the bucket deletes everything after a day. Only CloudFront can
+  invoke the function (origin access control), and the site bucket is private with the same
+  security headers added by CloudFront.
 - **Rate limiting:** `RATE_LIMIT_PER_MIN` conversions per client IP. Set `TRUST_PROXY` to match the
   proxy setup, so limits apply to real visitor IPs.
 - **Server-side request forgery:** HTML → PDF can't reach the server's own network. Every request

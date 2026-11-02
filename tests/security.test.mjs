@@ -126,3 +126,17 @@ test('vercel.json sends exactly the same security headers', () => {
   const sent = Object.fromEntries(all.headers.map((h) => [h.key, h.value]))
   assert.deepEqual(sent, { ...securityHeaders(), 'Strict-Transport-Security': HSTS })
 })
+
+test('the AWS stack (infra/aws.yml) sends the same security headers', () => {
+  const template = readFileSync(new URL('../infra/aws.yml', import.meta.url), 'utf8')
+  const headers = securityHeaders([], ['https://${UploadBucket.RegionalDomainName}'])
+  const csp = template.match(/ContentSecurityPolicy: !Sub "([^"]+)"/)?.[1]
+  assert.equal(csp, headers['Content-Security-Policy'])
+  for (const name of ['Cross-Origin-Opener-Policy', 'Permissions-Policy']) {
+    const value = template.match(new RegExp(`Header: ${name}\\n\\s+Value: (.+)`))?.[1]
+    assert.equal(value, headers[name], name)
+  }
+  assert.match(template, /ReferrerPolicy: strict-origin-when-cross-origin/)
+  assert.match(template, /FrameOption: SAMEORIGIN/)
+  assert.match(template, /AccessControlMaxAgeSec: 31536000\s+IncludeSubdomains: true/)
+})

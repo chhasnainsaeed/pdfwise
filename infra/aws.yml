@@ -1,0 +1,445 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  PDFwise on AWS, inside the Always Free allowances: the site on S3 behind CloudFront, the
+  conversion server (Office/HTML -> PDF) on Lambda, and a CodeBuild project that deploys every push
+  to main. See docs/aws.md.
+
+Parameters:
+  ImageUri:
+    Type: String
+    Default: ''
+    Description: >-
+      Conversion server image in this stack's ECR repository. Leave empty on the first deploy (no
+      image exists yet); later code updates go through the deploy build, not this parameter.
+  GitHubRepo:
+    Type: String
+    Default: chhasnainsaeed/pdfwise
+    Description: owner/name of the repository allowed to deploy.
+  DeployBranch:
+    Type: String
+    Default: main
+  AutoDeploy:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+    Description: >-
+      'true' deploys every push to DeployBranch. Turn it on after the GitHub connection is approved in
+      the console (Developer Tools > Settings > Connections); it can't be approved through the API.
+
+Conditions:
+  HasImage: !Not [!Equals [!Ref ImageUri, '']]
+  AutoDeploy: !Equals [!Ref AutoDeploy, 'true']
+
+Resources:
+  # --- Site ---------------------------------------------------------------------------------
+
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # ListBucket makes missing pages a 404 (not 403), which CloudFront answers with 404.html.
+          - Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: [s3:GetObject, s3:ListBucket]
+            Resource: [!GetAtt SiteBucket.Arn, !Sub '${SiteBucket.Arn}/*']
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+                AWS:SourceAccount: !Ref AWS::AccountId
+          - Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: [!GetAtt SiteBucket.Arn, !Sub '${SiteBucket.Arn}/*']
+            Condition: { Bool: { aws:SecureTransport: 'false' } }
+
+  SiteOriginAccess:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-site'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # --- Conversion server ----------------------------------------------------------------------
+
+  # Files in transit during a conversion: the browser uploads with a signed URL (Lambda takes at
+  # most 6 MB per request), the server deletes each input once read, and anything left expires.
+  UploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      LifecycleConfiguration:
+        Rules:
+          - Id: delete-after-a-day
+            Status: Enabled
+            ExpirationInDays: 1
+            AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 }
+      # Every request needs a signed URL from the server, so any origin may use one.
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, PUT]
+            AllowedOrigins: ['*']
+            AllowedHeaders: ['*']
+            MaxAge: 3600
+
+  UploadBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref UploadBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: [!GetAtt UploadBucket.Arn, !Sub '${UploadBucket.Arn}/*']
+            Condition: { Bool: { aws:SecureTransport: 'false' } }
+
+  Repository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub '${AWS::StackName}-server'
+      ImageTagMutability: IMMUTABLE
+      ImageScanningConfiguration: { ScanOnPush: true }
+      EmptyOnDelete: true
+      # Lambda pulls the image for this stack's function only.
+      RepositoryPolicyText:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: [ecr:BatchGetImage, ecr:GetDownloadUrlForLayer]
+            Condition:
+              StringLike:
+                aws:sourceArn: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-server'
+      LifecyclePolicy:
+        LifecyclePolicyText: >-
+          {"rules":[{"rulePriority":1,"description":"Keep the last 5 images","selection":
+          {"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},"action":{"type":"expire"}}]}
+
+  FunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-server'
+      RetentionInDays: 14
+
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition: { StringEquals: { aws:SourceAccount: !Ref AWS::AccountId } }
+      Policies:
+        - PolicyName: logs-and-uploads
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub '${FunctionLogs.Arn}'
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub '${UploadBucket.Arn}/*'
+
+  Function:
+    Type: AWS::Lambda::Function
+    Condition: HasImage
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-server'
+      Description: PDFwise conversion server (Office and web pages to PDF, through Chromium)
+      PackageType: Image
+      Code: { ImageUri: !Ref ImageUri }
+      Architectures: [x86_64]
+      Role: !GetAtt FunctionRole.Arn
+      # Chromium needs about 1 GB; 2 GB also buys a full vCPU. 400,000 free GB-seconds a month is
+      # about 40,000 five-second conversions.
+      MemorySize: 2048
+      EphemeralStorage: { Size: 1024 }
+      # CloudFront waits at most 60 s for the origin.
+      Timeout: 60
+      LoggingConfig: { LogGroup: !Ref FunctionLogs }
+      Environment:
+        Variables:
+          UPLOAD_BUCKET: !Ref UploadBucket
+          CONVERT_TIMEOUT_S: '50'
+          MAX_UPLOAD_MB: '50'
+
+  FunctionUrl:
+    Type: AWS::Lambda::Url
+    Condition: HasImage
+    Properties:
+      TargetFunctionArn: !GetAtt Function.Arn
+      # Only CloudFront can call it: requests are signed by the origin access control below.
+      AuthType: AWS_IAM
+
+  FunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Condition: HasImage
+    Properties:
+      FunctionName: !Ref Function
+      Action: lambda:InvokeFunctionUrl
+      FunctionUrlAuthType: AWS_IAM
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+
+  FunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Condition: HasImage
+    Properties:
+      FunctionName: !Ref Function
+      Action: lambda:InvokeFunction
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+
+  ApiOriginAccess:
+    Type: AWS::CloudFront::OriginAccessControl
+    Condition: HasImage
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-api'
+        OriginAccessControlOriginType: lambda
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # --- CloudFront -----------------------------------------------------------------------------
+
+  # Same headers as server/security-headers.js (tests/security.test.mjs checks they match), plus
+  # the upload bucket in connect-src.
+  SecurityHeaders:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${AWS::StackName}-security-headers'
+        SecurityHeadersConfig:
+          ContentSecurityPolicy:
+            Override: true
+            ContentSecurityPolicy: !Sub "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://plausible.io https://cloud.umami.is; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' blob: data: https://tessdata.projectnaptha.com https://plausible.io https://cloud.umami.is https://${UploadBucket.RegionalDomainName}; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; manifest-src 'self'"
+          ContentTypeOptions: { Override: true }
+          FrameOptions: { FrameOption: SAMEORIGIN, Override: true }
+          ReferrerPolicy: { ReferrerPolicy: strict-origin-when-cross-origin, Override: true }
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+        CustomHeadersConfig:
+          Items:
+            - Header: Cross-Origin-Opener-Policy
+              Value: same-origin
+              Override: true
+            - Header: Permissions-Policy
+              Value: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+              Override: true
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: PDFwise
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_All
+        DefaultRootObject: index.html
+        Origins:
+          - Id: site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SiteOriginAccess.Id
+            S3OriginConfig: { OriginAccessIdentity: '' }
+          - !If
+            - HasImage
+            - Id: api
+              DomainName: !Select [2, !Split ['/', !GetAtt FunctionUrl.FunctionUrl]]
+              OriginAccessControlId: !GetAtt ApiOriginAccess.Id
+              CustomOriginConfig:
+                OriginProtocolPolicy: https-only
+                OriginSSLProtocols: [TLSv1.2]
+                OriginReadTimeout: 60
+            - !Ref AWS::NoValue
+        DefaultCacheBehavior:
+          TargetOriginId: site
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          # Managed CachingOptimized: honors the Cache-Control each file is uploaded with.
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: !Ref SecurityHeaders
+        CacheBehaviors: !If
+          - HasImage
+          - - PathPattern: /api/*
+              TargetOriginId: api
+              ViewerProtocolPolicy: https-only
+              AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+              # Managed CachingDisabled and AllViewerExceptHostHeader (Lambda URLs need their own Host).
+              CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+              OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+              ResponseHeadersPolicyId: !Ref SecurityHeaders
+          - !Ref AWS::NoValue
+        # Only 404: the API's own 403/4xx JSON errors must reach the app unchanged.
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 404
+            ResponsePagePath: /404.html
+            ErrorCachingMinTTL: 60
+
+  # --- Deploys from GitHub ------------------------------------------------------------------
+
+  # AWS reads the repository through the AWS Connector for GitHub app: no AWS keys in GitHub and no
+  # GitHub token in AWS. Created PENDING; a person approves it once in the console.
+  GitHubConnection:
+    Type: AWS::CodeConnections::Connection
+    Properties:
+      ConnectionName: !Sub '${AWS::StackName}-github'
+      ProviderType: GitHub
+
+  BuildLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/codebuild/${AWS::StackName}-deploy'
+      RetentionInDays: 30
+
+  BuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: codebuild.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition: { StringEquals: { aws:SourceAccount: !Ref AWS::AccountId } }
+      Policies:
+        - PolicyName: deploy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub '${BuildLogs.Arn}'
+              # Read access to this one repository only (the connection could reach others).
+              - Effect: Allow
+                Action:
+                  [codeconnections:UseConnection, codeconnections:GetConnectionToken, codeconnections:GetConnection]
+                Resource: !Ref GitHubConnection
+                Condition: { StringEquals: { codeconnections:FullRepositoryId: !Ref GitHubRepo } }
+              - Effect: Allow
+                Action: cloudformation:DescribeStacks
+                Resource: !Ref AWS::StackId
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt SiteBucket.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub '${SiteBucket.Arn}/*'
+              - Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:CompleteLayerUpload
+                  - ecr:DescribeImages
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:InitiateLayerUpload
+                  - ecr:PutImage
+                  - ecr:UploadLayerPart
+                Resource: !GetAtt Repository.Arn
+              - Effect: Allow
+                Action: [lambda:UpdateFunctionCode, lambda:GetFunction, lambda:GetFunctionConfiguration]
+                Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-server'
+              - Effect: Allow
+                Action: [cloudfront:CreateInvalidation, cloudfront:GetInvalidation]
+                Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}'
+
+  # Runs infra/buildspec.yml: checks (lint, format, tests), then scripts/deploy-aws.sh. The free tier
+  # covers 100 build minutes a month on this size.
+  DeployProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub '${AWS::StackName}-deploy'
+      Description: Checks and deploys PDFwise on every push to the deploy branch
+      ServiceRole: !GetAtt BuildRole.Arn
+      TimeoutInMinutes: 30
+      ConcurrentBuildLimit: 1
+      Source:
+        Type: GITHUB
+        Location: !Sub 'https://github.com/${GitHubRepo}.git'
+        BuildSpec: infra/buildspec.yml
+        # Full history: the build compares commits to skip rebuilding an unchanged server image.
+        GitCloneDepth: 0
+        Auth:
+          Type: CODECONNECTIONS
+          Resource: !Ref GitHubConnection
+      SourceVersion: !Sub 'refs/heads/${DeployBranch}'
+      Triggers: !If
+        - AutoDeploy
+        - Webhook: true
+          FilterGroups:
+            - - Type: EVENT
+                Pattern: PUSH
+              - Type: HEAD_REF
+                Pattern: !Sub '^refs/heads/${DeployBranch}$'
+        - !Ref AWS::NoValue
+      Artifacts: { Type: NO_ARTIFACTS }
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux-x86_64-standard:5.0
+        # Builds the server's Docker image.
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: STACK
+            Value: !Ref AWS::StackName
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+          GroupName: !Ref BuildLogs
+
+Outputs:
+  SiteUrl:
+    Value: !Sub 'https://${Distribution.DomainName}'
+  DistributionId:
+    Value: !Ref Distribution
+  SiteBucket:
+    Value: !Ref SiteBucket
+  UploadBucket:
+    Value: !Ref UploadBucket
+  RepositoryUri:
+    Value: !GetAtt Repository.RepositoryUri
+  FunctionName:
+    Value: !Sub '${AWS::StackName}-server'
+  GitHubConnection:
+    Description: Approve it once in the console (Developer Tools > Settings > Connections).
+    Value: !Ref GitHubConnection
+  DeployProject:
+    Value: !Ref DeployProject
