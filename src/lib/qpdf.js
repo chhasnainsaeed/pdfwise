@@ -77,7 +77,16 @@ export async function protectPdf(file, { password, allowPrint, allowCopy, allowE
   if (!allowPrint) flags.push('--print=none')
   if (!allowCopy) flags.push('--extract=n')
   if (!allowEdit) flags.push('--modify=none')
-  const r = await runQpdf(await readBytes(file), ['/in.pdf', '--encrypt', password, owner, '256', ...flags, '--', '/out.pdf'])
+  const r = await runQpdf(await readBytes(file), [
+    '/in.pdf',
+    '--encrypt',
+    password,
+    owner,
+    '256',
+    ...flags,
+    '--',
+    '/out.pdf',
+  ])
   if (!r.ok) {
     throw new UserError(`Couldn’t protect “${file.name}”. If it already has a password, unlock it first.`)
   }
@@ -85,11 +94,15 @@ export async function protectPdf(file, { password, allowPrint, allowCopy, allowE
 }
 
 export async function unlockPdf(file, password) {
-  const args = password ? [`--password=${password}`, '--decrypt', '/in.pdf', '/out.pdf'] : ['--decrypt', '/in.pdf', '/out.pdf']
+  const args = password
+    ? [`--password=${password}`, '--decrypt', '/in.pdf', '/out.pdf']
+    : ['--decrypt', '/in.pdf', '/out.pdf']
   const r = await runQpdf(await readBytes(file), args)
   if (!r.ok) {
     throw new UserError(
-      password ? 'That password isn’t correct. Check it and try again.' : 'This PDF needs a password to open. Enter it and try again.',
+      password
+        ? 'That password isn’t correct. Check it and try again.'
+        : 'This PDF needs a password to open. Enter it and try again.',
     )
   }
   return r.output

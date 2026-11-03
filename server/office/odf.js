@@ -40,8 +40,10 @@ class OdfDoc {
     this.cache = new Map()
     this.images = new Map()
     for (const root of [styles, content]) {
-      for (const s of all(root, 'style', 'style')) this.byName.set(`${attr(s, 'style', 'family')}:${attr(s, 'style', 'name')}`, s)
-      for (const s of all(root, 'style', 'style')) if (!this.byName.has(`*:${attr(s, 'style', 'name')}`)) this.byName.set(`*:${attr(s, 'style', 'name')}`, s)
+      for (const s of all(root, 'style', 'style'))
+        this.byName.set(`${attr(s, 'style', 'family')}:${attr(s, 'style', 'name')}`, s)
+      for (const s of all(root, 'style', 'style'))
+        if (!this.byName.has(`*:${attr(s, 'style', 'name')}`)) this.byName.set(`*:${attr(s, 'style', 'name')}`, s)
       for (const s of all(root, 'text', 'list-style')) this.byName.set(`list:${attr(s, 'style', 'name')}`, s)
     }
     this.defaults = {}
@@ -103,9 +105,13 @@ async function openOdf(buffer) {
 
 function textCss(t) {
   const css = []
-  if (t['font-weight'] && t['font-weight'] !== 'normal') css.push(`font-weight:${t['font-weight'] === 'bold' ? 700 : t['font-weight']}`)
+  if (t['font-weight'] && t['font-weight'] !== 'normal')
+    css.push(`font-weight:${t['font-weight'] === 'bold' ? 700 : t['font-weight']}`)
   if (t['font-style'] === 'italic' || t['font-style'] === 'oblique') css.push('font-style:italic')
-  const deco = [t['text-underline-style'] && t['text-underline-style'] !== 'none' && 'underline', t['text-line-through-style'] && t['text-line-through-style'] !== 'none' && 'line-through'].filter(Boolean)
+  const deco = [
+    t['text-underline-style'] && t['text-underline-style'] !== 'none' && 'underline',
+    t['text-line-through-style'] && t['text-line-through-style'] !== 'none' && 'line-through',
+  ].filter(Boolean)
   if (deco.length) css.push(`text-decoration:${deco.join(' ')}`)
   if (t['font-size'] && !t['font-size'].endsWith('%')) css.push(`font-size:${toPt(t['font-size'], 12).toFixed(1)}pt`)
   if (t.color) css.push(`color:${t.color}`)
@@ -120,9 +126,12 @@ function textCss(t) {
 
 function paraCss(p) {
   const css = []
-  const align = { start: 'left', left: 'left', end: 'right', right: 'right', center: 'center', justify: 'justify' }[p['text-align']]
+  const align = { start: 'left', left: 'left', end: 'right', right: 'right', center: 'center', justify: 'justify' }[
+    p['text-align']
+  ]
   if (align) css.push(`text-align:${align}`)
-  for (const side of ['margin-left', 'margin-right', 'margin-top', 'margin-bottom', 'text-indent']) if (p[side]) css.push(`${side}:${toPt(p[side]).toFixed(1)}pt`)
+  for (const side of ['margin-left', 'margin-right', 'margin-top', 'margin-bottom', 'text-indent'])
+    if (p[side]) css.push(`${side}:${toPt(p[side]).toFixed(1)}pt`)
   if (p['line-height']?.endsWith('%')) css.push(`line-height:${parseFloat(p['line-height']) / 100}`)
   if (p['background-color'] && p['background-color'] !== 'transparent') css.push(`background:${p['background-color']}`)
   return css
@@ -133,10 +142,14 @@ function boxCss(g) {
   if (g.fill === 'solid' && g['fill-color']) css.push(`background:${g['fill-color']}`)
   else if (!g.fill && g['fill-color'] && g['fill-color'] !== 'transparent') css.push(`background:${g['fill-color']}`)
   if (g['background-color'] && g['background-color'] !== 'transparent') css.push(`background:${g['background-color']}`)
-  if (g.stroke && g.stroke !== 'none') css.push(`border:${Math.max(0.5, toPt(g['stroke-width'] ?? '0.75pt', 0.75)).toFixed(2)}pt ${g.stroke === 'dash' ? 'dashed' : 'solid'} ${g['stroke-color'] ?? '#000'}`)
+  if (g.stroke && g.stroke !== 'none')
+    css.push(
+      `border:${Math.max(0.5, toPt(g['stroke-width'] ?? '0.75pt', 0.75)).toFixed(2)}pt ${g.stroke === 'dash' ? 'dashed' : 'solid'} ${g['stroke-color'] ?? '#000'}`,
+    )
   for (const side of ['', '-top', '-right', '-bottom', '-left']) {
     const b = g[`border${side}`]
-    if (b && b !== 'none') css.push(`border${side}:${b.replace(/(\d*\.?\d+)(cm|mm|in)/g, (m) => `${toPt(m).toFixed(2)}pt`)}`)
+    if (b && b !== 'none')
+      css.push(`border${side}:${b.replace(/(\d*\.?\d+)(cm|mm|in)/g, (m) => `${toPt(m).toFixed(2)}pt`)}`)
   }
   return css
 }
@@ -161,7 +174,19 @@ function inline(node, doc) {
       else if (name === 'span') {
         const st = attr(n, 'text', 'style-name')
         out += `<span${style(st ? textCss(doc.props(st, 'text').text) : [])}>${inline(n, doc)}</span>`
-      } else if (['note', 'bookmark', 'bookmark-start', 'bookmark-end', 'soft-page-break', 'sequence-decls', 'annotation', 'reference-mark-start', 'reference-mark-end'].includes(name)) {
+      } else if (
+        [
+          'note',
+          'bookmark',
+          'bookmark-start',
+          'bookmark-end',
+          'soft-page-break',
+          'sequence-decls',
+          'annotation',
+          'reference-mark-start',
+          'reference-mark-end',
+        ].includes(name)
+      ) {
         // Not printed inline.
       } else out += inline(n, doc)
     } else if (is(n, 'draw', 'frame')) out += frameInline(n, doc)
@@ -198,7 +223,13 @@ function blocks(node, doc, baseText = []) {
         .map((li) => `<li${is(li, 'text', 'list-header') ? ' class="nb"' : ''}>${blocks(li, doc, baseText)}</li>`)
       out += `<${tag}>${items.join('')}</${tag}>`
     } else if (is(n, 'table', 'table')) out += tableHtml(n, doc)
-    else if (is(n, 'text', 'section') || is(n, 'text', 'index-body') || is(n, 'text', 'table-of-content') || is(n, 'text', 'alphabetical-index')) out += blocks(n, doc, baseText)
+    else if (
+      is(n, 'text', 'section') ||
+      is(n, 'text', 'index-body') ||
+      is(n, 'text', 'table-of-content') ||
+      is(n, 'text', 'alphabetical-index')
+    )
+      out += blocks(n, doc, baseText)
     else if (is(n, 'draw', 'frame')) out += `<p>${frameInline(n, doc)}</p>`
   }
   return out
@@ -214,7 +245,17 @@ function tableHtml(t, doc) {
         const repeat = Math.min(64, Number(attr(c, 'table', 'number-columns-repeated') || 1))
         for (let i = 0; i < repeat; i++) widths.push(w ? toPt(w) : null)
       } else if (is(c, 'table', 'table-row')) rows.push(c)
-      else if (['table-header-rows', 'table-rows', 'table-row-group', 'table-columns', 'table-header-columns', 'table-column-group'].includes(c.localName)) walk(c)
+      else if (
+        [
+          'table-header-rows',
+          'table-rows',
+          'table-row-group',
+          'table-columns',
+          'table-header-columns',
+          'table-column-group',
+        ].includes(c.localName)
+      )
+        walk(c)
     }
   }
   walk(t)
@@ -232,7 +273,9 @@ function tableHtml(t, doc) {
       return `<tr>${cells.join('')}</tr>`
     })
     .join('')
-  const cols = widths.some(Boolean) ? `<colgroup>${widths.map((w) => `<col${w ? ` style="width:${w.toFixed(1)}pt"` : ''}>`).join('')}</colgroup>` : ''
+  const cols = widths.some(Boolean)
+    ? `<colgroup>${widths.map((w) => `<col${w ? ` style="width:${w.toFixed(1)}pt"` : ''}>`).join('')}</colgroup>`
+    : ''
   return `<table>${cols}${body}</table>`
 }
 
@@ -249,7 +292,8 @@ function pageLayout(doc) {
 function defaultTextCss(doc) {
   const d = doc.defaults.paragraph
   const t = {}
-  for (const child of children(d)) if (child.localName === 'text-properties') for (const a of Array.from(child.attributes)) t[a.localName] = a.value
+  for (const child of children(d))
+    if (child.localName === 'text-properties') for (const a of Array.from(child.attributes)) t[a.localName] = a.value
   return textCss(t).join(';')
 }
 
@@ -276,10 +320,18 @@ table{border-collapse:collapse;margin:0 0 8pt}td{padding:2pt 4pt;vertical-align:
 
 // ---------- ODP ----------
 
-const CLASS_SIZES = { title: 'font-size:32pt', subtitle: 'font-size:24pt', outline: 'font-size:18pt', notes: 'font-size:12pt' }
+const CLASS_SIZES = {
+  title: 'font-size:32pt',
+  subtitle: 'font-size:24pt',
+  outline: 'font-size:18pt',
+  notes: 'font-size:12pt',
+}
 
 function shapeHtml(el, doc) {
-  if (is(el, 'draw', 'g')) return children(el).map((c) => shapeHtml(c, doc)).join('')
+  if (is(el, 'draw', 'g'))
+    return children(el)
+      .map((c) => shapeHtml(c, doc))
+      .join('')
   if (is(el, 'draw', 'line')) {
     const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map((k) => toPt(attr(el, 'svg', k)))
     const g = doc.props(attr(el, 'draw', 'style-name') ?? '', 'graphic').graphic
@@ -289,25 +341,34 @@ function shapeHtml(el, doc) {
     const h = Math.max(Math.abs(y2 - y1), 0.1)
     return `<svg class="shape" style="left:${left}pt;top:${top}pt;width:${w}pt;height:${h}pt;overflow:visible" viewBox="0 0 ${w} ${h}"><line x1="${x1 - left}" y1="${y1 - top}" x2="${x2 - left}" y2="${y2 - top}" stroke="${g['stroke-color'] ?? '#000'}" stroke-width="${toPt(g['stroke-width'] ?? '0.75pt', 0.75)}"/></svg>`
   }
-  if (!['frame', 'custom-shape', 'rect', 'ellipse', 'circle'].includes(el.localName) || el.namespaceURI !== NS.draw) return ''
+  if (!['frame', 'custom-shape', 'rect', 'ellipse', 'circle'].includes(el.localName) || el.namespaceURI !== NS.draw)
+    return ''
   if (el.getAttributeNS(NS.presentation, 'placeholder') === 'true') return ''
 
   const pos = ['x', 'y', 'width', 'height'].map((k) => toPt(attr(el, 'svg', k)))
   const cls = el.getAttributeNS(NS.presentation, 'class')
   const styleName = el.getAttributeNS(NS.presentation, 'style-name') || attr(el, 'draw', 'style-name')
   const props = styleName ? doc.props(styleName) : { graphic: {}, text: {}, para: {} }
-  const css = [`left:${pos[0].toFixed(1)}pt`, `top:${pos[1].toFixed(1)}pt`, `width:${pos[2].toFixed(1)}pt`, `height:${pos[3].toFixed(1)}pt`]
+  const css = [
+    `left:${pos[0].toFixed(1)}pt`,
+    `top:${pos[1].toFixed(1)}pt`,
+    `width:${pos[2].toFixed(1)}pt`,
+    `height:${pos[3].toFixed(1)}pt`,
+  ]
   const geometry = children(el).find((c) => is(c, 'draw', 'enhanced-geometry'))
   const geoType = geometry?.getAttributeNS(NS.draw, 'type')
   if (el.localName !== 'frame') css.push(...boxCss(props.graphic))
-  if (el.localName === 'ellipse' || el.localName === 'circle' || geoType === 'ellipse' || geoType === 'circle') css.push('border-radius:50%')
+  if (el.localName === 'ellipse' || el.localName === 'circle' || geoType === 'ellipse' || geoType === 'circle')
+    css.push('border-radius:50%')
   if (geoType === 'round-rectangle') css.push(`border-radius:${(Math.min(pos[2], pos[3]) * 0.15).toFixed(1)}pt`)
   const transform = attr(el, 'draw', 'transform')
   const rot = transform && /rotate\s*\(\s*(-?[\d.]+)/.exec(transform)
   if (rot) css.push(`transform:rotate(${(-Number(rot[1]) * 180) / Math.PI}deg)`)
 
   const baseText = [CLASS_SIZES[cls], ...textCss(props.text)].filter(Boolean)
-  const valign = { middle: 'center', bottom: 'flex-end', top: 'flex-start' }[props.graphic['textarea-vertical-align'] ?? (el.localName === 'frame' ? 'top' : 'middle')]
+  const valign = { middle: 'center', bottom: 'flex-end', top: 'flex-start' }[
+    props.graphic['textarea-vertical-align'] ?? (el.localName === 'frame' ? 'top' : 'middle')
+  ]
   let inner = ''
   const img = children(el).find((c) => is(c, 'draw', 'image'))
   const box = children(el).find((c) => is(c, 'draw', 'text-box'))
@@ -335,8 +396,14 @@ export async function odpDocument(buffer) {
       return p.fill === 'solid' && p['fill-color'] ? p['fill-color'] : null
     }
     const bg = bgProps(pg) ?? (master && bgProps(master)) ?? '#fff'
-    const decorations = master ? children(master).map((c) => shapeHtml(c, doc)).join('') : ''
-    const shapes = children(pg).map((c) => shapeHtml(c, doc)).join('')
+    const decorations = master
+      ? children(master)
+          .map((c) => shapeHtml(c, doc))
+          .join('')
+      : ''
+    const shapes = children(pg)
+      .map((c) => shapeHtml(c, doc))
+      .join('')
     return `<div class="slide" style="background:${bg}">${decorations}${shapes}</div>`
   })
   if (!slides.length) throw new HttpError(422, 'This presentation has no slides to convert.')

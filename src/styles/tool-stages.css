@@ -1,0 +1,246 @@
+/* Upload, processing and done screens of a tool session. */
+
+/* ---------- Tool stages ---------- */
+
+.stage-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-height: calc(100dvh - var(--header-h));
+  padding: 56px 24px;
+  background: var(--bg);
+}
+
+.upload-stage {
+  justify-content: center;
+  background:
+    radial-gradient(900px 420px at 50% 0%, color-mix(in srgb, var(--c) 9%, transparent), transparent 70%), var(--bg);
+}
+
+.stage-title {
+  margin-top: 20px;
+  font-size: clamp(30px, 4.4vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.stage-lead {
+  max-width: 600px;
+  margin: 12px 0 0;
+  font-size: 18px;
+  color: var(--ink-2);
+}
+
+.upload-stage .btn-xl {
+  margin-top: 36px;
+}
+
+.upload-hint {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 14px 0 0;
+  color: var(--ink-3);
+}
+
+.upload-alert {
+  margin-top: 20px;
+  max-width: 520px;
+}
+
+.privacy-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 44px;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--brand) 12%, rgba(255, 255, 255, 0.8));
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+
+.drop-overlay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 64px;
+  border: 3px dashed var(--brand);
+  border-radius: 24px;
+  background: #fff;
+  color: var(--brand);
+  font-size: 20px;
+}
+
+.processing {
+  position: fixed;
+  inset: var(--header-h) 0 0 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(245, 245, 250, 0.86);
+  backdrop-filter: blur(4px);
+}
+
+.processing-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.processing-card h2 {
+  font-size: 24px;
+  margin-top: 8px;
+}
+
+.processing-card p {
+  margin: 0;
+}
+
+.progress {
+  width: 280px;
+  height: 8px;
+  border-radius: 99px;
+  background: #e3e2ee;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--brand);
+  border-radius: inherit;
+  transition: width 0.2s;
+}
+
+.done-stage .stage-title {
+  margin-top: 8px;
+}
+
+.done-stage {
+  perspective: 1000px;
+}
+
+/* The file card flips in (keyframes card-flip in immersive.css). */
+.done-card {
+  animation: card-flip 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: 28px;
+  padding: 28px 32px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  max-width: 100%;
+}
+
+.done-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  color: var(--ink-2);
+}
+
+.done-file-name {
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.done-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.continue {
+  margin-top: 40px;
+  width: 100%;
+  max-width: 720px;
+}
+
+.continue h2 {
+  font-size: 15px;
+  color: var(--ink-3);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.continue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.continue-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: left;
+}
+
+.continue-item:hover {
+  border-color: var(--brand);
+  box-shadow: var(--shadow-sm);
+}
+
+.compress-stats {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.compress-stats p {
+  margin: 2px 0 0;
+}
+
+.ring {
+  --p: 0;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: conic-gradient(var(--ok) calc(var(--p) * 1%), #e3e2ee 0);
+}
+
+.ring span {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--bg);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--ok);
+}

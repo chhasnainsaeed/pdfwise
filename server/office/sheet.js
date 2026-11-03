@@ -41,7 +41,20 @@ function themeColors(xml) {
     return m && (/lastClr="([0-9A-Fa-f]{6})"/.exec(m[1])?.[1] ?? /val="([0-9A-Fa-f]{6})"/.exec(m[1])?.[1])
   }
   // Excel theme indexes swap the light/dark pairs relative to the theme file.
-  return ['lt1', 'dk1', 'lt2', 'dk2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6', 'hlink', 'folHlink'].map(pick)
+  return [
+    'lt1',
+    'dk1',
+    'lt2',
+    'dk2',
+    'accent1',
+    'accent2',
+    'accent3',
+    'accent4',
+    'accent5',
+    'accent6',
+    'hlink',
+    'folHlink',
+  ].map(pick)
 }
 
 function applyTint(hex, tint) {
@@ -66,7 +79,13 @@ function applyTint(hex, tint) {
     return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p
   }
   ;[r, g, b] = s === 0 ? [l, l, l] : [f(h + 1 / 3), f(h), f(h - 1 / 3)]
-  return [r, g, b].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('')
+  return [r, g, b]
+    .map((v) =>
+      Math.round(v * 255)
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')
 }
 
 function cssColor(c, theme) {
@@ -78,7 +97,20 @@ function cssColor(c, theme) {
   return hex ? `#${applyTint(hex, c.tint)}` : null
 }
 
-const BORDER_WIDTH = { hair: 0.25, thin: 0.5, dotted: 0.5, dashed: 0.5, dashDot: 0.5, dashDotDot: 0.5, medium: 1, mediumDashed: 1, mediumDashDot: 1, slantDashDot: 1, thick: 1.5, double: 2 }
+const BORDER_WIDTH = {
+  hair: 0.25,
+  thin: 0.5,
+  dotted: 0.5,
+  dashed: 0.5,
+  dashDot: 0.5,
+  dashDotDot: 0.5,
+  medium: 1,
+  mediumDashed: 1,
+  mediumDashDot: 1,
+  slantDashDot: 1,
+  thick: 1.5,
+  double: 2,
+}
 
 function cellCss(cell, theme, isNumber) {
   const st = cell.style ?? {}
@@ -87,7 +119,8 @@ function cellCss(cell, theme, isNumber) {
   if (f) {
     if (f.bold) css.push('font-weight:700')
     if (f.italic) css.push('font-style:italic')
-    if (f.underline || f.strike) css.push(`text-decoration:${[f.underline && 'underline', f.strike && 'line-through'].filter(Boolean).join(' ')}`)
+    if (f.underline || f.strike)
+      css.push(`text-decoration:${[f.underline && 'underline', f.strike && 'line-through'].filter(Boolean).join(' ')}`)
     if (f.size) css.push(`font-size:${f.size}pt`)
     if (f.name) css.push(`font-family:'${String(f.name).replace(/['"\\<>;]/g, '')}',Calibri,Arial,sans-serif`)
     const color = cssColor(f.color, theme)
@@ -106,13 +139,22 @@ function cellCss(cell, theme, isNumber) {
     const b = st.border?.[side]
     if (!b?.style) continue
     bordered = true
-    const style = b.style === 'double' ? 'double' : /dot/i.test(b.style) ? 'dotted' : /dash/i.test(b.style) ? 'dashed' : 'solid'
+    const style =
+      b.style === 'double' ? 'double' : /dot/i.test(b.style) ? 'dotted' : /dash/i.test(b.style) ? 'dashed' : 'solid'
     css.push(`border-${side}:${BORDER_WIDTH[b.style] ?? 0.5}pt ${style} ${cssColor(b.color, theme) ?? '#000'}`)
   }
   const a = st.alignment ?? {}
-  const h = { center: 'center', centerContinuous: 'center', right: 'right', justify: 'justify', distributed: 'justify', left: 'left' }[a.horizontal]
+  const h = {
+    center: 'center',
+    centerContinuous: 'center',
+    right: 'right',
+    justify: 'justify',
+    distributed: 'justify',
+    left: 'left',
+  }[a.horizontal]
   if (h || isNumber) css.push(`text-align:${h ?? 'right'}`)
-  if (a.vertical) css.push(`vertical-align:${{ top: 'top', middle: 'middle', bottom: 'bottom' }[a.vertical] ?? 'bottom'}`)
+  if (a.vertical)
+    css.push(`vertical-align:${{ top: 'top', middle: 'middle', bottom: 'bottom' }[a.vertical] ?? 'bottom'}`)
   if (a.wrapText) css.push('white-space:pre-wrap')
   if (a.indent) css.push(`padding-left:${a.indent * 9}pt`)
   return { css: css.join(';'), bordered }
@@ -139,7 +181,8 @@ async function styledXlsx(buffer) {
     for (const ref of ws.model.merges ?? []) {
       const m = XLSX.utils.decode_range(ref)
       spans.set(`${m.s.r},${m.s.c}`, { rows: m.e.r - m.s.r + 1, cols: m.e.c - m.s.c + 1 })
-      for (let r = m.s.r; r <= m.e.r; r++) for (let c = m.s.c; c <= m.e.c; c++) if (r !== m.s.r || c !== m.s.c) covered.add(`${r},${c}`)
+      for (let r = m.s.r; r <= m.e.r; r++)
+        for (let c = m.s.c; c <= m.e.c; c++) if (r !== m.s.r || c !== m.s.c) covered.add(`${r},${c}`)
     }
 
     const cols = []
@@ -165,16 +208,23 @@ async function styledXlsx(buffer) {
         const { css, bordered } = cellCss(cell, theme, sjCell?.t === 'n')
         anyBorder ||= bordered
         const span = spans.get(key)
-        const attrs = span ? `${span.rows > 1 ? ` rowspan="${span.rows}"` : ''}${span.cols > 1 ? ` colspan="${span.cols}"` : ''}` : ''
+        const attrs = span
+          ? `${span.rows > 1 ? ` rowspan="${span.rows}"` : ''}${span.cols > 1 ? ` colspan="${span.cols}"` : ''}`
+          : ''
         cells.push(`<td${attrs}${css ? ` style="${css}"` : ''}>${esc(text)}</td>`)
       }
       const height = row.height ? `height:${row.height}pt` : 'height:15pt'
       rows.push(`<tr style="${height}">${cells.join('')}</tr>`)
     }
 
-    const landscape = ws.pageSetup?.orientation === 'landscape' || (ws.pageSetup?.orientation !== 'portrait' && totalPt > PORTRAIT_PT * 1.1)
+    const landscape =
+      ws.pageSetup?.orientation === 'landscape' ||
+      (ws.pageSetup?.orientation !== 'portrait' && totalPt > PORTRAIT_PT * 1.1)
     const grid = ws.pageSetup?.showGridLines || !anyBorder
-    const note = range.e.r > lastRow ? `<p class="note">${(range.e.r - lastRow).toLocaleString('en')} more rows aren’t shown.</p>` : ''
+    const note =
+      range.e.r > lastRow
+        ? `<p class="note">${(range.e.r - lastRow).toLocaleString('en')} more rows aren’t shown.</p>`
+        : ''
     const title = visible.length > 1 ? `<h2>${esc(ws.name)}</h2>` : ''
     sections.push(
       `<section class="sheet${landscape ? ' wide' : ''}">${title}<table class="${grid ? 'grid' : ''}" style="table-layout:fixed;width:${totalPt.toFixed(1)}pt">` +

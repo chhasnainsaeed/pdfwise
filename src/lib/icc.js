@@ -35,7 +35,18 @@ function s15(v) {
 const xyzTag = ([x, y, z]) => concat([ascii('XYZ '), u32(0), s15(x), s15(y), s15(z)])
 
 function descTag(text) {
-  return concat([ascii('desc'), u32(0), u32(text.length + 1), ascii(text), new Uint8Array(1), u32(0), u32(0), new Uint8Array(2), new Uint8Array(1), new Uint8Array(67)])
+  return concat([
+    ascii('desc'),
+    u32(0),
+    u32(text.length + 1),
+    ascii(text),
+    new Uint8Array(1),
+    u32(0),
+    u32(0),
+    new Uint8Array(2),
+    new Uint8Array(1),
+    new Uint8Array(67),
+  ])
 }
 
 const textTag = (text) => concat([ascii('text'), u32(0), ascii(text), new Uint8Array(1)])

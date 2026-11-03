@@ -16,13 +16,20 @@ export default function Merge() {
   const broken = files.filter((f) => info[f.id]?.error)
 
   const sortByName = () =>
-    setFiles((list) =>
-      [...list].sort((a, b) => a.file.name.localeCompare(b.file.name, undefined, { numeric: true })),
-    )
+    setFiles((list) => [...list].sort((a, b) => a.file.name.localeCompare(b.file.name, undefined, { numeric: true })))
 
   const merge = () =>
     run(async ({ progress }) => ({
-      files: [{ name: 'merged.pdf', type: PDF_TYPE, data: await mergePdfs(files.map((f) => f.file), progress) }],
+      files: [
+        {
+          name: 'merged.pdf',
+          type: PDF_TYPE,
+          data: await mergePdfs(
+            files.map((f) => f.file),
+            progress,
+          ),
+        },
+      ],
     }))
 
   return (

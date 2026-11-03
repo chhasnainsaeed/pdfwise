@@ -1,6 +1,10 @@
 import { Eraser, ImagePlus, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Checkbox, Segmented } from '../components/controls.jsx'
+// Handwriting fonts, self-hosted, and only loaded with the Sign tool (latin subsets).
+import '@fontsource/caveat/latin-600.css'
+import '@fontsource/dancing-script/latin-600.css'
+import '@fontsource/homemade-apple/latin-400.css'
 
 const FONTS = [
   { family: 'Dancing Script', label: 'Elegant' },

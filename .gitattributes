@@ -1,0 +1,10 @@
+# Keep LF line endings in the repository and in every checkout (Windows included), so formatting
+# checks and diffs are the same on every machine.
+* text=auto eol=lf
+
+# Binary files: never touch line endings.
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.wasm binary

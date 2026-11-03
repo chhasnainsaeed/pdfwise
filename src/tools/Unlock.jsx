@@ -11,7 +11,8 @@ import { PasswordInput } from './Protect.jsx'
 
 const STATUS_TEXT = {
   locked: 'This PDF needs a password to open. Enter it below to save an unlocked copy.',
-  restricted: 'This PDF opens without a password but restricts printing, copying or editing. Unlocking removes those limits.',
+  restricted:
+    'This PDF opens without a password but restricts printing, copying or editing. Unlocking removes those limits.',
   none: 'This PDF isn’t protected, so there’s nothing to unlock.',
   unknown: 'This file couldn’t be read. If it’s damaged, try Repair PDF first.',
 }
@@ -36,7 +37,13 @@ export default function Unlock() {
 
   const unlock = () =>
     run(async () => ({
-      files: [{ name: `${baseName(item.file.name)}-unlocked.pdf`, type: PDF_TYPE, data: await unlockPdf(item.file, password) }],
+      files: [
+        {
+          name: `${baseName(item.file.name)}-unlocked.pdf`,
+          type: PDF_TYPE,
+          data: await unlockPdf(item.file, password),
+        },
+      ],
     }))
 
   const thumb =

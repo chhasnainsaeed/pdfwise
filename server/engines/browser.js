@@ -1,3 +1,4 @@
+/* global window, document -- functions passed to page.evaluate() run inside the headless browser page */
 // Prints HTML or web pages to PDF with a Chromium browser that's already installed
 // (Microsoft Edge ships with Windows). One headless browser is shared and closed when idle.
 
@@ -12,6 +13,11 @@ import { HttpError, limiter } from '../util.js'
 const IDLE_MS = 5 * 60_000
 const TIMEOUT_MS = (Number(process.env.CONVERT_TIMEOUT_S) || 120) * 1000
 const queue = limiter(Math.max(1, Number(process.env.BROWSER_CONCURRENCY) || 3))
+// Containers usually can't give Chromium the user namespaces its sandbox needs. Opt-in only:
+// the sandbox stays on everywhere else.
+const SANDBOX_ARGS = process.env.CHROME_NO_SANDBOX === '1' ? ['--no-sandbox'] : []
+// Extra flags for unusual hosts, e.g. AWS Lambda: --disable-dev-shm-usage --no-zygote
+const EXTRA_ARGS = (process.env.CHROME_ARGS || '').split(' ').filter(Boolean)
 
 export function findBrowser() {
   if (process.env.CHROME_PATH) return existsSync(process.env.CHROME_PATH) ? process.env.CHROME_PATH : null
@@ -32,7 +38,14 @@ export function findBrowser() {
             '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
             '/Applications/Chromium.app/Contents/MacOS/Chromium',
           ]
-        : ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/microsoft-edge', '/snap/bin/chromium']
+        : [
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/microsoft-edge',
+            '/snap/bin/chromium',
+          ]
   return candidates.find((p) => existsSync(p)) ?? null
 }
 
@@ -61,6 +74,8 @@ async function getBrowser() {
       '--disable-gpu',
       '--mute-audio',
       '--hide-scrollbars',
+      ...SANDBOX_ARGS,
+      ...EXTRA_ARGS,
       // All page traffic goes through the checking proxy, loopback included.
       `--proxy-server=http://127.0.0.1:${proxyPort}`,
       '--proxy-bypass-list=<-loopback>',
@@ -103,7 +118,10 @@ async function loadLazyContent(page) {
     }
     window.scrollTo(0, 0)
     const pending = [...document.images].filter((img) => !img.complete)
-    await Promise.race([Promise.all(pending.map((img) => new Promise((r) => (img.onload = img.onerror = r)))), delay(4000)])
+    await Promise.race([
+      Promise.all(pending.map((img) => new Promise((r) => (img.onload = img.onerror = r)))),
+      delay(4000),
+    ])
   })
 }
 
@@ -129,7 +147,9 @@ export function renderPdf({ html, url, prepare }, opts = {}) {
           const ok = /^(data|blob):/.test(req.url()) || req.url() === 'about:blank'
           return ok ? req.continue() : req.abort('blockedbyclient')
         }
-        const problem = await urlProblem(req.url(), { mainFrame: req.isNavigationRequest() && req.frame() === page.mainFrame() })
+        const problem = await urlProblem(req.url(), {
+          mainFrame: req.isNavigationRequest() && req.frame() === page.mainFrame(),
+        })
         if (problem) {
           if (req.isNavigationRequest() && req.frame() === page.mainFrame()) blocked = problem
           return req.abort('blockedbyclient')
@@ -138,6 +158,8 @@ export function renderPdf({ html, url, prepare }, opts = {}) {
       })
 
       if (html) {
+        // Documents are untrusted: no scripts unless the converter needs its own (DOCX renderer).
+        if (!prepare) await page.setJavaScriptEnabled(false)
         await page.setViewport({ width: 1240, height: 1754 })
         await page.setContent(html, { waitUntil: 'load' })
         if (prepare) await prepare(page)

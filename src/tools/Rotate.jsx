@@ -26,7 +26,11 @@ export default function Rotate() {
       const targets = files.filter((f) => norm(rot[f.id] ?? 0) !== 0)
       for (let i = 0; i < targets.length; i++) {
         const { id, file } = targets[i]
-        out.push({ name: `${baseName(file.name)}-rotated.pdf`, type: PDF_TYPE, data: await rotateAll(file, norm(rot[id])) })
+        out.push({
+          name: `${baseName(file.name)}-rotated.pdf`,
+          type: PDF_TYPE,
+          data: await rotateAll(file, norm(rot[id])),
+        })
         progress(i + 1, targets.length)
       }
       return { files: out, zipName: 'rotated-pdfs.zip' }

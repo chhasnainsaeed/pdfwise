@@ -1,0 +1,17 @@
+# AWS CodeBuild: runs on every push to main (infra/aws.yml → DeployProject). Same checks as CI, then
+# scripts/deploy-aws.sh, which rebuilds the server image only when server code changed.
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      - npm ci --no-audit --no-fund
+  pre_build:
+    commands:
+      - npm run check
+  build:
+    commands:
+      # DEPLOY_MODE=image once, during first-time setup (docs/aws.md); otherwise auto.
+      - IMAGE_TAG="$(git rev-parse --short=12 HEAD)" scripts/deploy-aws.sh "${DEPLOY_MODE:-auto}"

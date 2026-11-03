@@ -18,9 +18,7 @@ export default function Footer() {
             <Logo size={28} />
             <span className="brand-name">{BRAND}</span>
           </Link>
-          <p>
-            Free PDF tools that run in your browser. Only Office-to-PDF conversion uses a server — your own.
-          </p>
+          <p>Free PDF tools that run in your browser. Only Office-to-PDF conversion uses a server — your own.</p>
         </div>
         {COLUMNS.map((col) => (
           <div key={col.label} className="footer-col">

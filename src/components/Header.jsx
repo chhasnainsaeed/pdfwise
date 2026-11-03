@@ -1,13 +1,14 @@
-import { ChevronDown, Menu, X } from 'lucide-react'
+import { ChevronDown, Menu, Search, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { BRAND, CATEGORIES, TOOLS, TOOLS_BY_ID } from '../tools.js'
+import { BRAND, CATEGORIES, TOOLS } from '../tools.js'
+import { openPalette } from '../lib/events.js'
+import { InstallButton } from './AppStatus.jsx'
 import Logo from './Logo.jsx'
 import ToolIcon from './ToolIcon.jsx'
 
-const CONVERT = ['images-to-pdf', 'word-to-pdf', 'excel-to-pdf', 'powerpoint-to-pdf', 'html-to-pdf', 'pdf-to-jpg', 'pdf-to-word'].map(
-  (id) => TOOLS_BY_ID[id],
-)
+// Every convert tool, in registry order, so new ones show up in the menu automatically.
+const CONVERT = TOOLS.filter((t) => t.category === 'convert')
 
 function ToolLink({ tool }) {
   return (
@@ -94,6 +95,13 @@ export default function Header() {
             </div>
           </Dropdown>
         </nav>
+
+        <InstallButton />
+        <button type="button" className="search-btn" onClick={openPalette} aria-label="Search tools (Ctrl+K)">
+          <Search size={18} />
+          <span className="search-btn-text">Search tools</span>
+          <kbd>Ctrl K</kbd>
+        </button>
 
         <button
           type="button"

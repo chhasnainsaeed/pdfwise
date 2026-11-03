@@ -40,7 +40,8 @@ function Preview({ dims, opts }) {
     w = opts.text.length * opts.fontSize * (opts.font === 'courier' ? 0.6 : 0.62)
     h = opts.fontSize * 0.72
   }
-  const centers = layout === 'tile' ? tileCenters(dims.width, dims.height, w, h, angle) : [[dims.width / 2, dims.height / 2]]
+  const centers =
+    layout === 'tile' ? tileCenters(dims.width, dims.height, w, h, angle) : [[dims.width / 2, dims.height / 2]]
   return centers.map(([cx, cy], i) => {
     const pos = {
       left: `${(cx / dims.width) * 100}%`,
@@ -49,7 +50,13 @@ function Preview({ dims, opts }) {
       opacity,
     }
     return mode === 'image' ? (
-      <img key={i} className="wm-image" src={opts.image.src} alt="" style={{ ...pos, width: `${(w / dims.width) * 100}%` }} />
+      <img
+        key={i}
+        className="wm-image"
+        src={opts.image.src}
+        alt=""
+        style={{ ...pos, width: `${(w / dims.width) * 100}%` }}
+      />
     ) : (
       <span
         key={i}
@@ -169,7 +176,12 @@ export default function Watermark() {
                   <NumberInput value={fontSize} min={6} max={300} onChange={setFontSize} suffix="pt" />
                 </Field>
                 <Field label="Color">
-                  <input type="color" className="color-input" value={color} onChange={(e) => setColor(e.target.value)} />
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                  />
                 </Field>
               </div>
             </>
@@ -190,7 +202,15 @@ export default function Watermark() {
                 }}
               />
               <Field label={`Size — ${scale}% of page width`}>
-                <input type="range" className="range-input" min={5} max={100} step={1} value={scale} onChange={(e) => setScale(Number(e.target.value))} />
+                <input
+                  type="range"
+                  className="range-input"
+                  min={5}
+                  max={100}
+                  step={1}
+                  value={scale}
+                  onChange={(e) => setScale(Number(e.target.value))}
+                />
               </Field>
             </>
           )}

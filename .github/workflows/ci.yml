@@ -1,0 +1,64 @@
+# Runs on every push and pull request. Merge only when it's green (see README → Contributing).
+name: CI
+
+on:
+  push:
+    branches: [main, 'main-*']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, test, audit, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint and formatting
+        run: npx eslint . && npx prettier --check .
+      - name: Tests
+        run: npm test
+      - name: Security audit (production dependencies, high and critical)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Build
+        run: npm run build
+        env:
+          SITE_URL: https://example.com
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: check
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build the image
+        run: docker build --build-arg SITE_URL=https://example.com -t pdfwise:ci .
+      - name: Start it and check health and security headers
+        run: |
+          docker run -d --name app --init --shm-size=512m --cap-drop ALL -p 3001:3001 pdfwise:ci
+          for i in $(seq 1 30); do curl -sf http://localhost:3001/healthz && break; sleep 1; done
+          curl -sf http://localhost:3001/merge-pdf | grep -q '<title>Merge PDF'
+          curl -sI http://localhost:3001/ | grep -qi 'content-security-policy'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/does-not-exist)" = 404
+          curl -sf http://localhost:3001/api/health
+      - name: Convert a document through Chromium in the container
+        run: |
+          printf 'PDFwise CI\nA document converted inside the hardened container.\n' > test.txt
+          curl -sf -X POST -H 'X-File-Name: test.txt' --data-binary @test.txt -o out.pdf http://localhost:3001/api/convert/pdf
+          head -c 5 out.pdf | grep -q '%PDF-'
+          echo "converted: $(wc -c < out.pdf) bytes"
+      - name: Server logs
+        if: always()
+        run: docker logs app || true

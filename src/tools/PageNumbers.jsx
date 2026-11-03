@@ -85,7 +85,13 @@ export default function PageNumbers() {
 
   const save = () =>
     run(async () => ({
-      files: [{ name: `${baseName(item.file.name)}-numbered.pdf`, type: PDF_TYPE, data: await addPageNumbers(item.file, opts) }],
+      files: [
+        {
+          name: `${baseName(item.file.name)}-numbered.pdf`,
+          type: PDF_TYPE,
+          data: await addPageNumbers(item.file, opts),
+        },
+      ],
     }))
 
   return (
