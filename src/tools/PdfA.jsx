@@ -16,7 +16,10 @@ export default function PdfA() {
   const convert = () =>
     run(async ({ progress }) => {
       const r = await convertToPdfA(item.file, { flatten }, progress)
-      return { files: [{ name: `${baseName(item.file.name)}-pdfa.pdf`, type: PDF_TYPE, data: r.bytes }], note: r.report.join(' ') }
+      return {
+        files: [{ name: `${baseName(item.file.name)}-pdfa.pdf`, type: PDF_TYPE, data: r.bytes }],
+        note: r.report.join(' '),
+      }
     })
 
   return (

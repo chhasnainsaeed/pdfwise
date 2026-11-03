@@ -1,5 +1,5 @@
 import { PDFDocument } from 'pdf-lib'
-import { baseName, canvasToBlob } from './files.js'
+import { baseName, canvasToBlob, parallelism } from './files.js'
 import { getPdf, renderPage } from './pdfjs.js'
 
 export const PAGE_SIZES = {
@@ -111,24 +111,36 @@ export async function imagesToSeparatePdfs(files, opts, progress) {
   return results
 }
 
-/** Renders every page of every file to JPG or PNG. */
+/**
+ * Renders every page of every file to JPG or PNG. Pages render one at a time (PDF.js draws on
+ * the main thread), while their encoding, which runs on background threads, overlaps with the
+ * next pages: several encodes in flight at once, capped to bound memory.
+ */
 export async function pdfsToImages(files, { dpi, format }, progress) {
   const counts = await Promise.all(files.map(async (f) => (await getPdf(f)).numPages))
   const total = counts.reduce((a, b) => a + b, 0)
   const type = format === 'png' ? 'image/png' : 'image/jpeg'
   const ext = format === 'png' ? 'png' : 'jpg'
   const results = []
+  const inFlight = new Set()
+  const limit = parallelism()
   let done = 0
   for (let i = 0; i < files.length; i++) {
     const digits = String(counts[i]).length
     for (let p = 1; p <= counts[i]; p++) {
+      if (inFlight.size >= limit) await Promise.race(inFlight)
       const { canvas } = await renderPage(files[i], p, { scale: dpi / 72, intent: 'print' })
-      const blob = await canvasToBlob(canvas, type, 0.92)
-      canvas.width = canvas.height = 0
       const suffix = counts[i] > 1 ? `-${String(p).padStart(digits, '0')}` : ''
-      results.push({ name: `${baseName(files[i].name)}${suffix}.${ext}`, data: blob, type })
-      progress?.(++done, total)
+      const slot = results.push(null) - 1
+      const job = canvasToBlob(canvas, type, 0.92).then((blob) => {
+        canvas.width = canvas.height = 0
+        results[slot] = { name: `${baseName(files[i].name)}${suffix}.${ext}`, data: blob, type }
+        inFlight.delete(job)
+        progress?.(++done, total)
+      })
+      inFlight.add(job)
     }
   }
+  await Promise.all(inFlight)
   return results
 }

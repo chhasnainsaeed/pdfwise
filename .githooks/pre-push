@@ -1,0 +1,10 @@
+#!/bin/sh
+# Runs before every `git push`: the push is cancelled if lint, formatting or tests fail.
+# Enabled automatically by `npm install` (see "prepare" in package.json).
+# Skip once in an emergency with: git push --no-verify
+echo "pre-push: running npm run check…"
+npm run check --silent || {
+  echo ""
+  echo "✗ Push cancelled: fix the problems above (npm run format fixes formatting), then push again."
+  exit 1
+}

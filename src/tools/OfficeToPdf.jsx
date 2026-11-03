@@ -39,7 +39,7 @@ export default function OfficeToPdf() {
       const out = []
       for (let i = 0; i < files.length; i++) {
         const { file } = files[i]
-        out.push({ name: `${baseName(file.name)}.pdf`, type: PDF_TYPE, data: await convertOnServer(file) })
+        out.push({ name: `${baseName(file.name)}.pdf`, type: PDF_TYPE, data: await convertOnServer(file, status) })
         progress(i + 1, files.length)
       }
       return { files: out, zipName: 'converted-pdfs.zip' }
@@ -58,7 +58,13 @@ export default function OfficeToPdf() {
       <div className="status-note is-unknown">
         <ServerOff size={18} />
         <span>
-          The conversion server isn’t running. Start it with <code>npm run server</code>, then check again.
+          {navigator.onLine ? (
+            <>
+              The conversion server isn’t running. Start it with <code>npm run server</code>, then check again.
+            </>
+          ) : (
+            'You’re offline. Office conversion needs a connection — check again once you’re back online.'
+          )}
         </span>
       </div>
     )
@@ -83,7 +89,10 @@ export default function OfficeToPdf() {
         <span>
           Using the built-in converter (LibreOffice isn’t installed on the server). Fonts, colors, tables, images,
           charts and cell styles carry over; complex layouts can differ slightly from Office. Supports{' '}
-          {status.formats.map((f) => (status.notes?.[f] ? `${f.toUpperCase()} (${status.notes[f]})` : f.toUpperCase())).join(', ')}.
+          {status.formats
+            .map((f) => (status.notes?.[f] ? `${f.toUpperCase()} (${status.notes[f]})` : f.toUpperCase()))
+            .join(', ')}
+          .
         </span>
       </div>
     )
@@ -92,7 +101,8 @@ export default function OfficeToPdf() {
   let hint = null
   if (!status) hint = 'Checking the server…'
   else if (!status.ok || !status.engine) hint = 'The conversion server isn’t ready.'
-  else if (unsupported.length) hint = `“${unsupported[0].file.name}” needs LibreOffice on the server. Remove it to continue.`
+  else if (unsupported.length)
+    hint = `“${unsupported[0].file.name}” needs LibreOffice on the server. Remove it to continue.`
 
   return (
     <ToolLayout
@@ -118,8 +128,8 @@ export default function OfficeToPdf() {
             </button>
           )}
           <p className="side-text small">
-            Unlike most tools, this one sends your files to your PDFwise server. They’re converted in a temporary
-            folder (or in memory) and discarded as soon as the PDF is sent back.
+            Unlike most tools, this one sends your files to your PDFwise server. They’re converted in a temporary folder
+            (or in memory) and discarded as soon as the PDF is sent back.
           </p>
         </>
       }

@@ -108,13 +108,25 @@ export default function Crop() {
         ) : (
           <div className="crop-stage">
             <div className="pager">
-              <button type="button" className="mini-btn" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} title="Previous page">
+              <button
+                type="button"
+                className="mini-btn"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+                title="Previous page"
+              >
                 <ChevronLeft size={16} />
               </button>
               <span>
                 Page {page} of {count || '…'}
               </span>
-              <button type="button" className="mini-btn" disabled={page >= count} onClick={() => setPage((p) => p + 1)} title="Next page">
+              <button
+                type="button"
+                className="mini-btn"
+                disabled={page >= count}
+                onClick={() => setPage((p) => p + 1)}
+                title="Next page"
+              >
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -150,7 +162,11 @@ export default function Crop() {
             />
           </Field>
           {!untouched && (
-            <button type="button" className="btn btn-ghost" onClick={() => setMargins({ top: 0, right: 0, bottom: 0, left: 0 })}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setMargins({ top: 0, right: 0, bottom: 0, left: 0 })}
+            >
               Reset crop
             </button>
           )}

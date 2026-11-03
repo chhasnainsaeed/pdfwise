@@ -34,7 +34,9 @@ export default function PdfToWord() {
         out.push({
           name: `${baseName(file.name)}.docx`,
           type: DOCX_TYPE,
-          data: await pdfToDocx(file, { layout: mode === 'layout' }, (d, t) => progress(i * 100 + (d / t) * 100, files.length * 100)),
+          data: await pdfToDocx(file, { layout: mode === 'layout' }, (d, t) =>
+            progress(i * 100 + (d / t) * 100, files.length * 100),
+          ),
         })
       }
       return { files: out, zipName: 'word-documents.zip' }
@@ -45,7 +47,12 @@ export default function PdfToWord() {
       main={
         <div className="file-grid">
           {files.map((item) => (
-            <FileCard key={item.id} item={item} info={info[item.id]} onRemove={() => setFiles((list) => list.filter((f) => f.id !== item.id))} />
+            <FileCard
+              key={item.id}
+              item={item}
+              info={info[item.id]}
+              onRemove={() => setFiles((list) => list.filter((f) => f.id !== item.id))}
+            />
           ))}
         </div>
       }

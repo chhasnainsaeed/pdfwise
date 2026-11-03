@@ -20,7 +20,12 @@ export function PasswordInput({ value, onChange, placeholder, autoFocus }) {
         autoComplete="new-password"
         onChange={(e) => onChange(e.target.value)}
       />
-      <button type="button" className="icon-btn" aria-label={show ? 'Hide password' : 'Show password'} onClick={() => setShow((s) => !s)}>
+      <button
+        type="button"
+        className="icon-btn"
+        aria-label={show ? 'Hide password' : 'Show password'}
+        onClick={() => setShow((s) => !s)}
+      >
         {show ? <EyeOff size={18} /> : <Eye size={18} />}
       </button>
     </div>
@@ -79,7 +84,9 @@ export default function Protect() {
           <Field label="Repeat password" error={repeat && repeat !== password ? 'Passwords don’t match.' : null}>
             <PasswordInput value={repeat} onChange={setRepeat} placeholder="Type it again" />
           </Field>
-          {password && password.length < 6 && <p className="side-text small">Short passwords are easy to guess. Use at least 8 characters.</p>}
+          {password && password.length < 6 && (
+            <p className="side-text small">Short passwords are easy to guess. Use at least 8 characters.</p>
+          )}
           <Field label="Permissions">
             <div className="check-list">
               <Checkbox checked={allowPrint} onChange={setAllowPrint}>

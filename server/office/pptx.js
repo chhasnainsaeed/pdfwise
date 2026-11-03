@@ -23,7 +23,8 @@ const kids = (el, q) => {
 const kid = (el, q) => kids(el, q)[0] ?? null
 const dig = (el, ...qs) => qs.reduce((cur, q) => (cur ? kid(cur, q) : null), el)
 /** Child in the PresentationML namespace or its SmartArt-drawing twin. */
-const pchild = (el, local) => children(el).find((n) => n.localName === local && (n.namespaceURI === NS.p || n.namespaceURI === NS.dsp)) ?? null
+const pchild = (el, local) =>
+  children(el).find((n) => n.localName === local && (n.namespaceURI === NS.p || n.namespaceURI === NS.dsp)) ?? null
 const num = (el, name, fallback = null) => {
   const v = el?.getAttribute(name)
   return v === null || v === undefined || v === '' ? fallback : Number(v)
@@ -51,7 +52,11 @@ class Pptx {
     for (const r of Array.from(root?.getElementsByTagName('Relationship') ?? [])) {
       const target = r.getAttribute('Target')
       const external = r.getAttribute('TargetMode') === 'External'
-      const resolved = external ? target : target.startsWith('/') ? target.slice(1) : path.posix.normalize(path.posix.join(dir, target))
+      const resolved = external
+        ? target
+        : target.startsWith('/')
+          ? target.slice(1)
+          : path.posix.normalize(path.posix.join(dir, target))
       map.set(r.getAttribute('Id'), { target: resolved, type: r.getAttribute('Type') ?? '', external })
     }
     return map
@@ -102,7 +107,8 @@ function colorOf(el, theme) {
   for (const c of children(el)) {
     let hex = null
     if (c.localName === 'srgbClr') hex = c.getAttribute('val')
-    else if (c.localName === 'sysClr') hex = c.getAttribute('lastClr') || (c.getAttribute('val') === 'window' ? 'FFFFFF' : '000000')
+    else if (c.localName === 'sysClr')
+      hex = c.getAttribute('lastClr') || (c.getAttribute('val') === 'window' ? 'FFFFFF' : '000000')
     else if (c.localName === 'schemeClr') {
       const v = c.getAttribute('val')
       hex = theme.colors[SCHEME_ALIAS[v] ?? v] ?? null
@@ -126,7 +132,8 @@ function colorOf(el, theme) {
   return null
 }
 
-const accent = (theme, i) => `#${theme.colors[`accent${(i % 6) + 1}`] ?? ['4472C4', 'ED7D31', 'A5A5A5', 'FFC000', '5B9BD5', '70AD47'][i % 6]}`
+const accent = (theme, i) =>
+  `#${theme.colors[`accent${(i % 6) + 1}`] ?? ['4472C4', 'ED7D31', 'A5A5A5', 'FFC000', '5B9BD5', '70AD47'][i % 6]}`
 
 async function fillCss(fillParent, theme, pres, rels) {
   if (!fillParent) return undefined
@@ -135,7 +142,9 @@ async function fillCss(fillParent, theme, pres, rels) {
   if (solid) return colorOf(solid, theme) ?? undefined
   const grad = kid(fillParent, 'a:gradFill')
   if (grad) {
-    const stops = kids(dig(grad, 'a:gsLst'), 'a:gs').map((gs) => `${colorOf(gs, theme) ?? '#fff'} ${num(gs, 'pos', 0) / 1000}%`)
+    const stops = kids(dig(grad, 'a:gsLst'), 'a:gs').map(
+      (gs) => `${colorOf(gs, theme) ?? '#fff'} ${num(gs, 'pos', 0) / 1000}%`,
+    )
     const ang = num(dig(grad, 'a:lin'), 'ang', 5400000) / 60000
     return stops.length ? `linear-gradient(${ang + 90}deg, ${stops.join(', ')})` : undefined
   }
@@ -150,7 +159,10 @@ async function fillCss(fillParent, theme, pres, rels) {
 
 // ---------- placeholders & text ----------
 
-const phOf = (sp) => dig(sp, 'p:nvSpPr', 'p:nvPr', 'p:ph') ?? dig(sp, 'p:nvPicPr', 'p:nvPr', 'p:ph') ?? dig(sp, 'p:nvGraphicFramePr', 'p:nvPr', 'p:ph')
+const phOf = (sp) =>
+  dig(sp, 'p:nvSpPr', 'p:nvPr', 'p:ph') ??
+  dig(sp, 'p:nvPicPr', 'p:nvPr', 'p:ph') ??
+  dig(sp, 'p:nvGraphicFramePr', 'p:nvPr', 'p:ph')
 
 function findPlaceholder(tree, ph) {
   if (!tree || !ph) return null
@@ -191,21 +203,52 @@ function bulletFor(pPr, chain, lvl) {
 }
 
 function roman(n) {
-  const map = [[1000, 'm'], [900, 'cm'], [500, 'd'], [400, 'cd'], [100, 'c'], [90, 'xc'], [50, 'l'], [40, 'xl'], [10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i']]
+  const map = [
+    [1000, 'm'],
+    [900, 'cm'],
+    [500, 'd'],
+    [400, 'cd'],
+    [100, 'c'],
+    [90, 'xc'],
+    [50, 'l'],
+    [40, 'xl'],
+    [10, 'x'],
+    [9, 'ix'],
+    [5, 'v'],
+    [4, 'iv'],
+    [1, 'i'],
+  ]
   let out = ''
-  for (const [v, s] of map) while (n >= v) (out += s), (n -= v)
+  for (const [v, s] of map) while (n >= v) ((out += s), (n -= v))
   return out
 }
 
 function numberLabel(type, n) {
   const alpha = String.fromCharCode(96 + (((n - 1) % 26) + 1))
-  const base = type.startsWith('alphaLc') ? alpha : type.startsWith('alphaUc') ? alpha.toUpperCase() : type.startsWith('romanLc') ? roman(n) : type.startsWith('romanUc') ? roman(n).toUpperCase() : String(n)
-  return type.endsWith('ParenR') ? `${base})` : type.endsWith('ParenBoth') ? `(${base})` : type.endsWith('Plain') ? base : `${base}.`
+  const base = type.startsWith('alphaLc')
+    ? alpha
+    : type.startsWith('alphaUc')
+      ? alpha.toUpperCase()
+      : type.startsWith('romanLc')
+        ? roman(n)
+        : type.startsWith('romanUc')
+          ? roman(n).toUpperCase()
+          : String(n)
+  return type.endsWith('ParenR')
+    ? `${base})`
+    : type.endsWith('ParenBoth')
+      ? `(${base})`
+      : type.endsWith('Plain')
+        ? base
+        : `${base}.`
 }
 
 // Single quotes only: these values end up inside style="…" attributes.
 function fontFamily(face, theme) {
-  const f = (face === '+mj-lt' ? theme.majorFont : face === '+mn-lt' ? theme.minorFont : face)?.replace(/['"\\<>;]/g, '')
+  const f = (face === '+mj-lt' ? theme.majorFont : face === '+mn-lt' ? theme.minorFont : face)?.replace(
+    /['"\\<>;]/g,
+    '',
+  )
   return [f && `'${f}'`, 'Calibri', 'Carlito', `'Segoe UI'`, 'Arial', 'sans-serif'].filter(Boolean).join(',')
 }
 
@@ -219,8 +262,13 @@ function renderTextBody(txBody, ctx) {
     const algn = pPr?.getAttribute('algn') ?? lookup(chain, lvl, (l) => l.getAttribute('algn')) ?? 'l'
     const marL = num(pPr, 'marL') ?? lookup(chain, lvl, (l) => num(l, 'marL')) ?? 0
     const indent = num(pPr, 'indent') ?? lookup(chain, lvl, (l) => num(l, 'indent')) ?? 0
-    const spcPct = num(dig(pPr, 'a:lnSpc', 'a:spcPct'), 'val') ?? lookup(chain, lvl, (l) => num(dig(l, 'a:lnSpc', 'a:spcPct'), 'val'))
-    const spcBef = num(dig(pPr, 'a:spcBef', 'a:spcPts'), 'val') ?? lookup(chain, lvl, (l) => num(dig(l, 'a:spcBef', 'a:spcPts'), 'val')) ?? 0
+    const spcPct =
+      num(dig(pPr, 'a:lnSpc', 'a:spcPct'), 'val') ??
+      lookup(chain, lvl, (l) => num(dig(l, 'a:lnSpc', 'a:spcPct'), 'val'))
+    const spcBef =
+      num(dig(pPr, 'a:spcBef', 'a:spcPts'), 'val') ??
+      lookup(chain, lvl, (l) => num(dig(l, 'a:spcBef', 'a:spcPts'), 'val')) ??
+      0
     const defRPr = (key) => lookup(chain, lvl, (l) => kid(l, 'a:defRPr')?.getAttribute(key) || null)
     const defColor = lookup(chain, lvl, (l) => colorOf(dig(l, 'a:defRPr', 'a:solidFill'), theme))
     const defFace = lookup(chain, lvl, (l) => dig(l, 'a:defRPr', 'a:latin')?.getAttribute('typeface') || null)
@@ -328,7 +376,8 @@ async function renderShape(sp, ctx, map) {
   const spPr = pchild(sp, 'spPr')
   const styleEl = pchild(sp, 'style')
   let background = await fillCss(spPr, theme, pres, rels)
-  if (background === undefined && styleEl && num(kid(styleEl, 'a:fillRef'), 'idx', 0) > 0) background = colorOf(kid(styleEl, 'a:fillRef'), theme) ?? undefined
+  if (background === undefined && styleEl && num(kid(styleEl, 'a:fillRef'), 'idx', 0) > 0)
+    background = colorOf(kid(styleEl, 'a:fillRef'), theme) ?? undefined
   const ln = kid(spPr, 'a:ln')
   let border = ''
   if (ln && !kid(ln, 'a:noFill')) {
@@ -350,8 +399,19 @@ async function renderShape(sp, ctx, map) {
   const txBody = pchild(sp, 'txBody')
   if (txBody && kids(txBody, 'a:p').some((p) => dig(p, 'a:r') || dig(p, 'a:fld'))) {
     const type = ph?.getAttribute('type') || (ph ? 'body' : null)
-    const master = type === 'title' || type === 'ctrTitle' ? kid(txStyles, 'p:titleStyle') : type ? kid(txStyles, 'p:bodyStyle') : kid(txStyles, 'p:otherStyle')
-    const chain = [kid(txBody, 'a:lstStyle'), dig(pchild(layoutPh, 'txBody'), 'a:lstStyle'), dig(pchild(masterPh, 'txBody'), 'a:lstStyle'), master, defaultTextStyle]
+    const master =
+      type === 'title' || type === 'ctrTitle'
+        ? kid(txStyles, 'p:titleStyle')
+        : type
+          ? kid(txStyles, 'p:bodyStyle')
+          : kid(txStyles, 'p:otherStyle')
+    const chain = [
+      kid(txBody, 'a:lstStyle'),
+      dig(pchild(layoutPh, 'txBody'), 'a:lstStyle'),
+      dig(pchild(masterPh, 'txBody'), 'a:lstStyle'),
+      master,
+      defaultTextStyle,
+    ]
     const bodyPr = kid(txBody, 'a:bodyPr')
     const bodyPrs = [bodyPr, dig(pchild(layoutPh, 'txBody'), 'a:bodyPr'), dig(pchild(masterPh, 'txBody'), 'a:bodyPr')]
     const bp = (name, fallback) => {
@@ -366,7 +426,12 @@ async function renderShape(sp, ctx, map) {
     const wrap = bp('wrap', 'square') === 'none' ? ';white-space:nowrap' : ''
     inner = `<div class="tx" style="justify-content:${anchor};padding:${pad}${wrap}">${renderTextBody(txBody, { theme, chain, fontScale, fontColor })}</div>`
   }
-  const style = [boxStyle(box, map), background && background !== 'transparent' && `background:${background}`, border, radius].filter(Boolean)
+  const style = [
+    boxStyle(box, map),
+    background && background !== 'transparent' && `background:${background}`,
+    border,
+    radius,
+  ].filter(Boolean)
   return `<div class="shape" style="${style.join(';')}">${inner}</div>`
 }
 
@@ -395,7 +460,8 @@ function renderConnector(cxn, ctx, map) {
   if (!box) return ''
   const ln = dig(pchild(cxn, 'spPr'), 'a:ln')
   const styleEl = pchild(cxn, 'style')
-  const color = colorOf(kid(ln, 'a:solidFill'), ctx.theme) ?? (styleEl && colorOf(kid(styleEl, 'a:lnRef'), ctx.theme)) ?? '#444'
+  const color =
+    colorOf(kid(ln, 'a:solidFill'), ctx.theme) ?? (styleEl && colorOf(kid(styleEl, 'a:lnRef'), ctx.theme)) ?? '#444'
   const width = Math.max(0.5, num(ln, 'w', 12700) / EMU_PT)
   const [x1, y1] = map(box.x, box.y)
   const [x2, y2] = map(box.x + box.w, box.y + box.h)
@@ -420,7 +486,9 @@ function renderTable(frame, ctx, map) {
           const rowSpan = num(tc, 'rowSpan', 1)
           const fill = colorOf(dig(tc, 'a:tcPr', 'a:solidFill'), ctx.theme)
           const body = kid(tc, 'a:txBody')
-          const content = body ? renderTextBody(body, { theme: ctx.theme, chain: [ctx.defaultTextStyle], fontScale: 1, fontColor: null }) : ''
+          const content = body
+            ? renderTextBody(body, { theme: ctx.theme, chain: [ctx.defaultTextStyle], fontScale: 1, fontColor: null })
+            : ''
           return `<td${span > 1 ? ` colspan="${span}"` : ''}${rowSpan > 1 ? ` rowspan="${rowSpan}"` : ''}${fill ? ` style="background:${fill}"` : ''}>${content}</td>`
         })
       return `<tr style="height:${pt(num(tr, 'h', 0))}">${cells.join('')}</tr>`
@@ -432,7 +500,12 @@ function renderTable(frame, ctx, map) {
 
 // ---------- charts ----------
 
-const chartText = (el) => (el ? Array.from(el.getElementsByTagNameNS(NS.a, 't')).map((t) => t.textContent).join('') : '')
+const chartText = (el) =>
+  el
+    ? Array.from(el.getElementsByTagNameNS(NS.a, 't'))
+        .map((t) => t.textContent)
+        .join('')
+    : ''
 
 function cachePoints(ref) {
   const cache =
@@ -459,7 +532,12 @@ function niceScale(min, max, steps = 5) {
   return { lo, hi, ticks }
 }
 
-const fmt = (v) => (Math.abs(v) >= 1e6 ? `${+(v / 1e6).toFixed(1)}M` : Math.abs(v) >= 1e4 ? `${+(v / 1e3).toFixed(1)}k` : `${+v.toFixed(2)}`)
+const fmt = (v) =>
+  Math.abs(v) >= 1e6
+    ? `${+(v / 1e6).toFixed(1)}M`
+    : Math.abs(v) >= 1e4
+      ? `${+(v / 1e3).toFixed(1)}k`
+      : `${+v.toFixed(2)}`
 
 function renderChart(root, box, map, theme) {
   const chart = dig(root, 'c:chart')
@@ -473,16 +551,25 @@ function renderChart(root, box, map, theme) {
   const H = (y2 - y) / EMU_PT
 
   const series = kids(typeEl, 'c:ser').map((ser, i) => {
-    const color = colorOf(dig(ser, 'c:spPr', 'a:solidFill'), theme) ?? colorOf(dig(ser, 'c:spPr', 'a:ln', 'a:solidFill'), theme) ?? accent(theme, i)
+    const color =
+      colorOf(dig(ser, 'c:spPr', 'a:solidFill'), theme) ??
+      colorOf(dig(ser, 'c:spPr', 'a:ln', 'a:solidFill'), theme) ??
+      accent(theme, i)
     const vals = cachePoints(kid(ser, 'c:val') ?? kid(ser, 'c:yVal')).map(Number)
     const cats = cachePoints(kid(ser, 'c:cat') ?? kid(ser, 'c:xVal'))
     const name = dig(ser, 'c:tx', 'c:v')?.textContent ?? cachePoints(kid(ser, 'c:tx'))[0] ?? `Series ${i + 1}`
-    const points = kids(ser, 'c:dPt').map((d) => [num(dig(d, 'c:idx'), 'val', 0), colorOf(dig(d, 'c:spPr', 'a:solidFill'), theme)])
+    const points = kids(ser, 'c:dPt').map((d) => [
+      num(dig(d, 'c:idx'), 'val', 0),
+      colorOf(dig(d, 'c:spPr', 'a:solidFill'), theme),
+    ])
     return { name, vals, cats, color, pointColors: new Map(points) }
   })
   if (!series.length) return null
 
-  const title = dig(chart, 'c:autoTitleDeleted')?.getAttribute('val') === '1' ? '' : chartText(dig(chart, 'c:title')) || (series.length === 1 && dig(chart, 'c:title') ? series[0].name : '')
+  const title =
+    dig(chart, 'c:autoTitleDeleted')?.getAttribute('val') === '1'
+      ? ''
+      : chartText(dig(chart, 'c:title')) || (series.length === 1 && dig(chart, 'c:title') ? series[0].name : '')
   const legendPos = dig(chart, 'c:legend') ? (dig(chart, 'c:legend', 'c:legendPos')?.getAttribute('val') ?? 'r') : null
   const cats = series[0].cats.length ? series[0].cats : series[0].vals.map((_, i) => String(i + 1))
   const out = []
@@ -494,7 +581,9 @@ function renderChart(root, box, map, theme) {
   }
 
   const pie = type === 'pieChart' || type === 'doughnutChart'
-  const legendItems = pie ? cats.map((c, i) => [c, series[0].pointColors.get(i) ?? accent(theme, i)]) : series.map((s) => [s.name, s.color])
+  const legendItems = pie
+    ? cats.map((c, i) => [c, series[0].pointColors.get(i) ?? accent(theme, i)])
+    : series.map((s) => [s.name, s.color])
   let right = W - 8
   let bottom = H - 8
   if (legendPos) {
@@ -502,7 +591,9 @@ function renderChart(root, box, map, theme) {
       const ly = legendPos === 'b' ? H - 12 : top + 4
       let lx = 8
       legendItems.forEach(([label, color]) => {
-        out.push(`<rect x="${lx}" y="${ly - 7}" width="8" height="8" fill="${color}"/><text x="${lx + 11}" y="${ly}" font-size="9" ${font}>${esc(label)}</text>`)
+        out.push(
+          `<rect x="${lx}" y="${ly - 7}" width="8" height="8" fill="${color}"/><text x="${lx + 11}" y="${ly}" font-size="9" ${font}>${esc(label)}</text>`,
+        )
         lx += 20 + String(label).length * 5
       })
       if (legendPos === 'b') bottom -= 18
@@ -512,7 +603,9 @@ function renderChart(root, box, map, theme) {
       right -= lw
       legendItems.forEach(([label, color], i) => {
         const ly = top + 14 + i * 14
-        out.push(`<rect x="${right + 8}" y="${ly - 7}" width="8" height="8" fill="${color}"/><text x="${right + 19}" y="${ly}" font-size="9" ${font}>${esc(label)}</text>`)
+        out.push(
+          `<rect x="${right + 8}" y="${ly - 7}" width="8" height="8" fill="${color}"/><text x="${right + 19}" y="${ly}" font-size="9" ${font}>${esc(label)}</text>`,
+        )
       })
     }
   }
@@ -561,17 +654,28 @@ function renderChart(root, box, map, theme) {
     const py0 = top + 6
     const pw = Math.max(10, right - px0 - 6)
     const ph = Math.max(10, bottom - py0 - (horizontal ? 18 : 18))
-    const vpos = (v) => (horizontal ? px0 + ((v - scale.lo) / (scale.hi - scale.lo)) * pw : py0 + ph - ((v - scale.lo) / (scale.hi - scale.lo)) * ph)
+    const vpos = (v) =>
+      horizontal
+        ? px0 + ((v - scale.lo) / (scale.hi - scale.lo)) * pw
+        : py0 + ph - ((v - scale.lo) / (scale.hi - scale.lo)) * ph
     for (const t of scale.ticks) {
-      if (horizontal) out.push(`<line x1="${vpos(t)}" y1="${py0}" x2="${vpos(t)}" y2="${py0 + ph}" stroke="#d9d9d9" stroke-width="0.6"/><text x="${vpos(t)}" y="${py0 + ph + 12}" text-anchor="middle" font-size="8" ${font}>${fmt(t)}${percent ? '%' : ''}</text>`)
-      else out.push(`<line x1="${px0}" y1="${vpos(t)}" x2="${px0 + pw}" y2="${vpos(t)}" stroke="#d9d9d9" stroke-width="0.6"/><text x="${px0 - 4}" y="${vpos(t) + 3}" text-anchor="end" font-size="8" ${font}>${fmt(t)}${percent ? '%' : ''}</text>`)
+      if (horizontal)
+        out.push(
+          `<line x1="${vpos(t)}" y1="${py0}" x2="${vpos(t)}" y2="${py0 + ph}" stroke="#d9d9d9" stroke-width="0.6"/><text x="${vpos(t)}" y="${py0 + ph + 12}" text-anchor="middle" font-size="8" ${font}>${fmt(t)}${percent ? '%' : ''}</text>`,
+        )
+      else
+        out.push(
+          `<line x1="${px0}" y1="${vpos(t)}" x2="${px0 + pw}" y2="${vpos(t)}" stroke="#d9d9d9" stroke-width="0.6"/><text x="${px0 - 4}" y="${vpos(t) + 3}" text-anchor="end" font-size="8" ${font}>${fmt(t)}${percent ? '%' : ''}</text>`,
+        )
     }
     const band = (horizontal ? ph : pw) / Math.max(n, 1)
     cats.forEach((c, i) => {
       const center = (horizontal ? py0 : px0) + band * (i + 0.5)
       const label = esc(String(c).slice(0, 18))
-      if (horizontal) out.push(`<text x="${px0 - 4}" y="${center + 3}" text-anchor="end" font-size="8" ${font}>${label}</text>`)
-      else if (n <= 24 || i % Math.ceil(n / 24) === 0) out.push(`<text x="${center}" y="${py0 + ph + 12}" text-anchor="middle" font-size="8" ${font}>${label}</text>`)
+      if (horizontal)
+        out.push(`<text x="${px0 - 4}" y="${center + 3}" text-anchor="end" font-size="8" ${font}>${label}</text>`)
+      else if (n <= 24 || i % Math.ceil(n / 24) === 0)
+        out.push(`<text x="${center}" y="${py0 + ph + 12}" text-anchor="middle" font-size="8" ${font}>${label}</text>`)
     })
 
     if (type === 'barChart') {
@@ -607,17 +711,28 @@ function renderChart(root, box, map, theme) {
         })
         const pts = xs.map((px, i) => `${px.toFixed(2)},${ys[i].toFixed(2)}`)
         if (type === 'areaChart') {
-          out.push(`<polygon points="${xs[0].toFixed(2)},${vpos(Math.max(scale.lo, 0)).toFixed(2)} ${pts.join(' ')} ${xs[xs.length - 1].toFixed(2)},${vpos(Math.max(scale.lo, 0)).toFixed(2)}" fill="${s.color}" fill-opacity="0.75"/>`)
+          out.push(
+            `<polygon points="${xs[0].toFixed(2)},${vpos(Math.max(scale.lo, 0)).toFixed(2)} ${pts.join(' ')} ${xs[xs.length - 1].toFixed(2)},${vpos(Math.max(scale.lo, 0)).toFixed(2)}" fill="${s.color}" fill-opacity="0.75"/>`,
+          )
         } else {
           const markers = type === 'scatterChart' || kid(typeEl, 'c:marker')?.getAttribute('val') !== '0'
           if (type !== 'scatterChart' || dig(typeEl, 'c:scatterStyle')?.getAttribute('val') !== 'marker') {
-            out.push(`<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`)
+            out.push(
+              `<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`,
+            )
           }
-          if (markers) xs.forEach((px, i) => out.push(`<circle cx="${px.toFixed(2)}" cy="${ys[i].toFixed(2)}" r="2.6" fill="${s.color}"/>`))
+          if (markers)
+            xs.forEach((px, i) =>
+              out.push(`<circle cx="${px.toFixed(2)}" cy="${ys[i].toFixed(2)}" r="2.6" fill="${s.color}"/>`),
+            )
         }
       })
     }
-    out.push(horizontal ? `<line x1="${vpos(Math.max(scale.lo, 0))}" y1="${py0}" x2="${vpos(Math.max(scale.lo, 0))}" y2="${py0 + ph}" stroke="#a6a6a6" stroke-width="0.8"/>` : `<line x1="${px0}" y1="${vpos(Math.max(scale.lo, 0))}" x2="${px0 + pw}" y2="${vpos(Math.max(scale.lo, 0))}" stroke="#a6a6a6" stroke-width="0.8"/>`)
+    out.push(
+      horizontal
+        ? `<line x1="${vpos(Math.max(scale.lo, 0))}" y1="${py0}" x2="${vpos(Math.max(scale.lo, 0))}" y2="${py0 + ph}" stroke="#a6a6a6" stroke-width="0.8"/>`
+        : `<line x1="${px0}" y1="${vpos(Math.max(scale.lo, 0))}" x2="${px0 + pw}" y2="${vpos(Math.max(scale.lo, 0))}" stroke="#a6a6a6" stroke-width="0.8"/>`,
+    )
   }
 
   return `<svg class="shape" style="left:${(x / EMU_PT).toFixed(2)}pt;top:${(y / EMU_PT).toFixed(2)}pt;width:${W.toFixed(2)}pt;height:${H.toFixed(2)}pt" viewBox="0 0 ${W.toFixed(2)} ${H.toFixed(2)}">${out.join('')}</svg>`
@@ -643,7 +758,8 @@ async function renderGraphicFrame(el, ctx, map) {
       // SmartArt: PowerPoint saves a ready-made drawing next to the diagram data.
       const dataRel = ctx.rels.get(diagram.getAttributeNS(NS.r, 'dm'))
       const dataRoot = dataRel && (await ctx.pres.xml(dataRel.target))
-      const drawingId = dataRoot && Array.from(dataRoot.getElementsByTagNameNS(NS.dsp, 'dataModelExt'))[0]?.getAttribute('relId')
+      const drawingId =
+        dataRoot && Array.from(dataRoot.getElementsByTagNameNS(NS.dsp, 'dataModelExt'))[0]?.getAttribute('relId')
       const drawingRel = drawingId && ctx.rels.get(drawingId)
       const drawing = drawingRel && (await ctx.pres.xml(drawingRel.target))
       const tree = drawing && kid(drawing, 'dsp:spTree')

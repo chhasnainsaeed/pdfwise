@@ -33,7 +33,10 @@ export default function Organize() {
     if (fresh.length) setPages((p) => [...p, ...fresh])
   }, [files, info])
 
-  const byId = useMemo(() => Object.fromEntries(files.map((f, i) => [f.id, { ...f, color: FILE_COLORS[i % FILE_COLORS.length], n: i }])), [files])
+  const byId = useMemo(
+    () => Object.fromEntries(files.map((f, i) => [f.id, { ...f, color: FILE_COLORS[i % FILE_COLORS.length], n: i }])),
+    [files],
+  )
   const broken = files.filter((f) => info[f.id]?.error)
 
   const update = (key, fn) => setPages((list) => list.map((p) => (p.key === key ? fn(p) : p)))
@@ -48,7 +51,11 @@ export default function Organize() {
           name: `${baseName(files[0].file.name)}-organized.pdf`,
           type: PDF_TYPE,
           data: await buildFromPages(
-            pages.map((p) => ({ file: byId[p.fileId].file, index: p.index, rotation: ((p.rotation % 360) + 360) % 360 })),
+            pages.map((p) => ({
+              file: byId[p.fileId].file,
+              index: p.index,
+              rotation: ((p.rotation % 360) + 360) % 360,
+            })),
           ),
         },
       ],
@@ -74,10 +81,20 @@ export default function Organize() {
                   {...bind(i)}
                 >
                   <div className="card-actions">
-                    <button type="button" className="mini-btn" title="Rotate left" onClick={() => update(p.key, (x) => ({ ...x, rotation: x.rotation - 90 }))}>
+                    <button
+                      type="button"
+                      className="mini-btn"
+                      title="Rotate left"
+                      onClick={() => update(p.key, (x) => ({ ...x, rotation: x.rotation - 90 }))}
+                    >
                       <RotateCcw size={15} />
                     </button>
-                    <button type="button" className="mini-btn" title="Rotate right" onClick={() => update(p.key, (x) => ({ ...x, rotation: x.rotation + 90 }))}>
+                    <button
+                      type="button"
+                      className="mini-btn"
+                      title="Rotate right"
+                      onClick={() => update(p.key, (x) => ({ ...x, rotation: x.rotation + 90 }))}
+                    >
                       <RotateCw size={15} />
                     </button>
                     <button type="button" className="mini-btn danger" title="Delete page" onClick={() => remove(p.key)}>
@@ -88,7 +105,9 @@ export default function Organize() {
                     <PageThumb file={src.file} page={p.index + 1} size={150} rotation={p.rotation} />
                   </div>
                   <div className="page-label">
-                    {files.length > 1 && <span className="file-dot" style={{ background: src.color }} title={src.file.name} />}
+                    {files.length > 1 && (
+                      <span className="file-dot" style={{ background: src.color }} title={src.file.name} />
+                    )}
                     {i + 1}
                   </div>
                 </div>

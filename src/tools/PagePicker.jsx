@@ -86,7 +86,8 @@ export default function PagePicker({ mode }) {
 
   let hint = null
   if (info?.error) hint = 'This file can’t be opened.'
-  else if (selected.size === 0) hint = removing ? 'Click the pages you want to remove.' : 'Click the pages you want to keep.'
+  else if (selected.size === 0)
+    hint = removing ? 'Click the pages you want to remove.' : 'Click the pages you want to keep.'
   else if (removing && keep.length === 0) hint = 'You can’t remove every page.'
 
   return (
@@ -110,7 +111,11 @@ export default function PagePicker({ mode }) {
                 >
                   <div className="page-frame">
                     <PageThumb file={item.file} page={i + 1} size={150} />
-                    {on && <span className="pick-badge">{removing ? <Trash2 size={16} /> : <Check size={16} strokeWidth={3} />}</span>}
+                    {on && (
+                      <span className="pick-badge">
+                        {removing ? <Trash2 size={16} /> : <Check size={16} strokeWidth={3} />}
+                      </span>
+                    )}
                   </div>
                   <div className="page-label">{i + 1}</div>
                 </button>
@@ -126,7 +131,12 @@ export default function PagePicker({ mode }) {
             error={textError}
             hint="Click pages, shift-click for a range, or type e.g. 1, 3-5, 9"
           >
-            <input className="text-input" value={text} placeholder="e.g. 1, 3-5, 9" onChange={(e) => onText(e.target.value)} />
+            <input
+              className="text-input"
+              value={text}
+              placeholder="e.g. 1, 3-5, 9"
+              onChange={(e) => onText(e.target.value)}
+            />
           </Field>
           <div className="chip-row">
             {!removing && (

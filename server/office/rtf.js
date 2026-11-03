@@ -6,10 +6,42 @@ import { esc, page } from './common.js'
 
 // Groups whose content isn't printed.
 const SKIP = new Set([
-  'stylesheet', 'info', 'header', 'headerl', 'headerr', 'headerf', 'footer', 'footerl', 'footerr', 'footerf',
-  'footnote', 'annotation', 'fldinst', 'xmlnstbl', 'listtable', 'listoverridetable', 'rsidtbl', 'generator',
-  'themedata', 'colorschememapping', 'datastore', 'latentstyles', 'pgdsctbl', 'operator', 'private', 'mmathPr',
-  'filetbl', 'revtbl', 'userprops', 'docvar', 'object', 'objdata', 'bkmkstart', 'bkmkend', 'nonshppict', 'shpinst',
+  'stylesheet',
+  'info',
+  'header',
+  'headerl',
+  'headerr',
+  'headerf',
+  'footer',
+  'footerl',
+  'footerr',
+  'footerf',
+  'footnote',
+  'annotation',
+  'fldinst',
+  'xmlnstbl',
+  'listtable',
+  'listoverridetable',
+  'rsidtbl',
+  'generator',
+  'themedata',
+  'colorschememapping',
+  'datastore',
+  'latentstyles',
+  'pgdsctbl',
+  'operator',
+  'private',
+  'mmathPr',
+  'filetbl',
+  'revtbl',
+  'userprops',
+  'docvar',
+  'object',
+  'objdata',
+  'bkmkstart',
+  'bkmkend',
+  'nonshppict',
+  'shpinst',
 ])
 
 const decoderFor = (cp) => {
@@ -29,7 +61,21 @@ export function rtfDocument(buffer) {
   const colors = []
   const geometry = { w: 12240, h: 15840, margins: [1440, 1800, 1440, 1800] }
 
-  let state = { b: false, i: false, u: false, strike: false, fs: 24, cf: 0, f: null, vert: null, align: 'left', skip: false, dest: null, uc: 1, inTable: false }
+  let state = {
+    b: false,
+    i: false,
+    u: false,
+    strike: false,
+    fs: 24,
+    cf: 0,
+    f: null,
+    vert: null,
+    align: 'left',
+    skip: false,
+    dest: null,
+    uc: 1,
+    inTable: false,
+  }
   const stack = []
   let ucPending = 0
   let bytes = []
@@ -38,7 +84,7 @@ export function rtfDocument(buffer) {
   let paragraphs = []
   let cell = []
   let cells = []
-  let blocks = []
+  const blocks = []
   let pict = null
   let fontName = ''
   let color = {}
@@ -48,7 +94,8 @@ export function rtfDocument(buffer) {
     const css = [`font-size:${state.fs / 2}pt`]
     if (state.b) css.push('font-weight:700')
     if (state.i) css.push('font-style:italic')
-    if (state.u || state.strike) css.push(`text-decoration:${[state.u && 'underline', state.strike && 'line-through'].filter(Boolean).join(' ')}`)
+    if (state.u || state.strike)
+      css.push(`text-decoration:${[state.u && 'underline', state.strike && 'line-through'].filter(Boolean).join(' ')}`)
     if (state.cf && colors[state.cf]) css.push(`color:${colors[state.cf]}`)
     if (state.f !== null && fonts[state.f]) css.push(`font-family:'${fonts[state.f]}',Calibri,Arial,sans-serif`)
     if (state.vert) css.push(`vertical-align:${state.vert};font-size:${state.fs / 3}pt`)
@@ -64,7 +111,9 @@ export function rtfDocument(buffer) {
   const flushText = () => {
     flushBytes()
     if (!text) return
-    runs.push(`<span style="${runCss()}">${esc(text).replace(/\t/g, '<span class="tab"></span>').replace(/\n/g, '<br>')}</span>`)
+    runs.push(
+      `<span style="${runCss()}">${esc(text).replace(/\t/g, '<span class="tab"></span>').replace(/\n/g, '<br>')}</span>`,
+    )
     text = ''
   }
   const endParagraph = () => {
@@ -93,7 +142,7 @@ export function rtfDocument(buffer) {
     else if (!state.skip && !state.dest) text += s
   }
 
-  for (let i = 0; i < src.length; ) {
+  for (let i = 0; i < src.length;) {
     const ch = src[i]
     if (ch === '{') {
       flushText()
@@ -107,7 +156,12 @@ export function rtfDocument(buffer) {
         if (pict.type) {
           const hex = pict.hex.replace(/[^0-9a-f]/gi, '')
           const b64 = Buffer.from(hex, 'hex').toString('base64')
-          const size = [pict.w && `width:${(pict.w / 20).toFixed(1)}pt`, pict.h && `height:${(pict.h / 20).toFixed(1)}pt`].filter(Boolean).join(';')
+          const size = [
+            pict.w && `width:${(pict.w / 20).toFixed(1)}pt`,
+            pict.h && `height:${(pict.h / 20).toFixed(1)}pt`,
+          ]
+            .filter(Boolean)
+            .join(';')
           runs.push(`<img src="data:image/${pict.type};base64,${b64}" style="${size}">`)
         }
         pict = null

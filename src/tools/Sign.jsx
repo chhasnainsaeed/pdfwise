@@ -142,7 +142,13 @@ export default function Sign() {
 
   const save = () =>
     run(async () => ({
-      files: [{ name: `${baseName(item.file.name)}-signed.pdf`, type: PDF_TYPE, data: await signPdf(item.file, sig.url, placements) }],
+      files: [
+        {
+          name: `${baseName(item.file.name)}-signed.pdf`,
+          type: PDF_TYPE,
+          data: await signPdf(item.file, sig.url, placements),
+        },
+      ],
     }))
 
   const pagesSigned = new Set(placements.map((p) => p.page)).size
@@ -203,11 +209,7 @@ export default function Sign() {
         sidebar={
           <>
             <div className="sig-card">
-              {sig ? (
-                <img src={sig.url} alt="Your signature" />
-              ) : (
-                <span className="muted">No signature yet</span>
-              )}
+              {sig ? <img src={sig.url} alt="Your signature" /> : <span className="muted">No signature yet</span>}
             </div>
             <button type="button" className="btn btn-outline" onClick={() => setModal(true)}>
               <PenLine size={18} /> {sig ? 'Change signature' : 'Create signature'}
@@ -242,7 +244,13 @@ export default function Sign() {
             />
           </>
         }
-        hint={!sig ? 'Create your signature to get started.' : placements.length === 0 ? 'Place your signature on at least one page.' : null}
+        hint={
+          !sig
+            ? 'Create your signature to get started.'
+            : placements.length === 0
+              ? 'Place your signature on at least one page.'
+              : null
+        }
         disabled={!sig || placements.length === 0}
         onAction={save}
       />

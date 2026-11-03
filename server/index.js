@@ -1,22 +1,26 @@
 // PDFwise conversion server.
 //   POST /api/convert/pdf   Office document → PDF (LibreOffice if installed, else the built-in converter)
 //   POST /api/convert/url   Web page → PDF (installed Chrome/Edge)
+//   POST /api/upload        With UPLOAD_BUCKET (AWS Lambda): a signed S3 URL to upload the file to first
 // Also serves the production build from ../dist when it exists.
 //
 //   npm run server            # http://127.0.0.1:3001
 //
-// Environment: PORT, HOST, CONVERTER (auto | libreoffice | builtin), SOFFICE_PATH, CHROME_PATH,
+// Environment: PORT, HOST, MAX_PENDING_CONVERSIONS, MAX_UNZIPPED_MB, CONVERTER (auto | libreoffice | builtin), SOFFICE_PATH, CHROME_PATH,
 // MAX_UPLOAD_MB, CONVERT_TIMEOUT_S, CONVERT_CONCURRENCY, BROWSER_CONCURRENCY, ALLOW_PRIVATE_URLS,
-// BASIC_AUTH (user:password), RATE_LIMIT_PER_MIN, TRUST_PROXY
+// BASIC_AUTH (user:password), RATE_LIMIT_PER_MIN, TRUST_PROXY, CHROME_NO_SANDBOX, CHROME_ARGS, UPLOAD_BUCKET
 
 import express from 'express'
 import { createHash, timingSafeEqual } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ZIP_FORMATS, checkArchive } from './archive.js'
+import { HSTS, securityHeaders } from './security-headers.js'
 import { findBrowser, renderPdf } from './engines/browser.js'
 import { LIBREOFFICE_FORMATS, findSoffice, libreofficeToPdf } from './engines/libreoffice.js'
 import { BUILTIN_FORMATS, BUILTIN_NOTES, officeDocument } from './office/index.js'
+import { UPLOAD_BUCKET, publishResult, takeUpload, uploadTarget } from './uploads.js'
 import { urlProblem } from './url-guard.js'
 import { HttpError } from './util.js'
 
@@ -26,6 +30,9 @@ const MAX_UPLOAD_MB = Number(process.env.MAX_UPLOAD_MB) || 100
 const CONVERTER = (process.env.CONVERTER || 'auto').toLowerCase()
 const BASIC_AUTH = process.env.BASIC_AUTH || ''
 const RATE_LIMIT = Number(process.env.RATE_LIMIT_PER_MIN ?? 30)
+// Conversions in progress at once (uploading, queued or running). Uploads are held in memory, so
+// this bounds memory use: extra requests get 503 + Retry-After instead of piling up.
+const MAX_PENDING = Number(process.env.MAX_PENDING_CONVERSIONS) || 8
 
 const digest = (s) => createHash('sha256').update(s).digest()
 
@@ -47,11 +54,28 @@ setInterval(() => {
 function rateLimit(req, res, next) {
   if (!RATE_LIMIT) return next()
   const now = Date.now()
+  // A flood from many addresses can't grow the table without bound.
+  if (hits.size > 100_000) hits.clear()
   let h = hits.get(req.ip)
   if (!h || now > h.reset) hits.set(req.ip, (h = { count: 0, reset: now + 60_000 }))
   if (++h.count <= RATE_LIMIT) return next()
   res.set('Retry-After', String(Math.ceil((h.reset - now) / 1000)))
   res.status(429).json({ error: 'Too many conversions in a short time. Wait a minute and try again.' })
+}
+
+let pending = 0
+function admit(req, res, next) {
+  if (pending >= MAX_PENDING) {
+    res.set('Retry-After', '15')
+    return res.status(503).json({ error: 'The server is busy with other conversions. Try again in a few seconds.' })
+  }
+  pending++
+  let released = false
+  res.on('close', () => {
+    if (!released) pending--
+    released = true
+  })
+  next()
 }
 
 /** Which engine converts Office files right now, and which extensions it accepts. */
@@ -62,11 +86,25 @@ function officeEngine() {
   return { name: null, formats: [] }
 }
 
+const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
+// Same headers as the static hosts get; the build writes the analytics origins it was built with.
+const headersFile = path.join(dist, 'security-headers.json')
+const HEADERS = existsSync(headersFile) ? JSON.parse(readFileSync(headersFile, 'utf8')) : securityHeaders()
+
 const app = express()
 app.disable('x-powered-by')
 if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY)
+app.use((req, res, next) => {
+  res.set(HEADERS)
+  if (req.secure) res.set('Strict-Transport-Security', HSTS)
+  next()
+})
+// Liveness check for Docker / load balancers. Before auth so it works with BASIC_AUTH on; says nothing
+// about the server beyond "up".
+app.get('/healthz', (req, res) => res.type('text/plain').send('ok'))
 if (BASIC_AUTH) app.use(requireAuth)
-app.use('/api/convert', rateLimit)
+app.use('/api/convert', rateLimit, admit)
+app.use('/api/upload', rateLimit)
 
 app.get('/api/health', (req, res) => {
   const engine = officeEngine()
@@ -78,33 +116,76 @@ app.get('/api/health', (req, res) => {
     libreoffice: Boolean(findSoffice()),
     browser: Boolean(findBrowser()),
     maxUploadMb: MAX_UPLOAD_MB,
+    // 's3': upload to /api/upload's signed URL first, and download the PDF from the returned URL.
+    uploads: UPLOAD_BUCKET ? 's3' : 'direct',
   })
 })
 
-app.post('/api/convert/pdf', express.raw({ type: () => true, limit: `${MAX_UPLOAD_MB}mb` }), async (req, res) => {
-  let name = ''
-  try {
-    name = decodeURIComponent(req.get('x-file-name') || '')
-  } catch {
-    // Malformed header; rejected by the extension check below.
-  }
-  const ext = path.extname(name).slice(1).toLowerCase()
+/** Sends the PDF itself, or with UPLOAD_BUCKET a short-lived link to it (Lambda caps responses at 6 MB). */
+async function sendPdf(res, pdf) {
+  if (UPLOAD_BUCKET) res.json({ url: await publishResult(pdf) })
+  else res.type('application/pdf').send(pdf)
+}
+
+/** The uploaded document: the raw request body, or with UPLOAD_BUCKET the file named by `key`. */
+const officeUpload = UPLOAD_BUCKET
+  ? [express.json({ limit: '4kb' }), async (req) => ({ name: req.body?.name, body: await takeUpload(req.body?.key) })]
+  : [
+      express.raw({ type: () => true, limit: `${MAX_UPLOAD_MB}mb` }),
+      async (req) => {
+        try {
+          return { name: decodeURIComponent(req.get('x-file-name') || ''), body: req.body }
+        } catch {
+          // Malformed header; rejected by the extension check.
+          return { name: '', body: req.body }
+        }
+      },
+    ]
+
+if (UPLOAD_BUCKET) {
+  app.post('/api/upload', express.json({ limit: '4kb' }), async (req, res) => {
+    try {
+      res.json(await uploadTarget(req.body?.size, MAX_UPLOAD_MB * 1024 * 1024))
+    } catch (e) {
+      if (!(e instanceof HttpError)) console.error('[upload]', e)
+      res.status(e.status || 500).json({ error: e instanceof HttpError ? e.message : 'Couldn’t start the upload.' })
+    }
+  })
+}
+
+app.post('/api/convert/pdf', officeUpload[0], async (req, res) => {
   const engine = officeEngine()
   if (!engine.name) {
-    return res.status(503).json({ error: 'No converter is available: install LibreOffice, or Chrome/Edge for the built-in converter.' })
+    return res
+      .status(503)
+      .json({ error: 'No converter is available: install LibreOffice, or Chrome/Edge for the built-in converter.' })
   }
-  if (!engine.formats.includes(ext)) {
-    const extra = engine.name === 'builtin' && LIBREOFFICE_FORMATS.includes(ext) ? ' It needs LibreOffice on the server.' : ''
-    return res.status(415).json({ error: `.${ext || '?'} files can’t be converted here.${extra} Supported: ${engine.formats.join(', ')}.` })
-  }
-  if (!Buffer.isBuffer(req.body) || req.body.length === 0) return res.status(400).json({ error: 'The file is empty.' })
   const started = Date.now()
   try {
+    const { name, body } = await officeUpload[1](req)
+    const ext = path
+      .extname(typeof name === 'string' ? name : '')
+      .slice(1)
+      .toLowerCase()
+    if (!engine.formats.includes(ext)) {
+      const extra =
+        engine.name === 'builtin' && LIBREOFFICE_FORMATS.includes(ext) ? ' It needs LibreOffice on the server.' : ''
+      throw new HttpError(
+        415,
+        `.${ext || '?'} files can’t be converted here.${extra} Supported: ${engine.formats.join(', ')}.`,
+      )
+    }
+    if (!Buffer.isBuffer(body) || body.length === 0) throw new HttpError(400, 'The file is empty.')
+    if (ZIP_FORMATS.has(ext)) checkArchive(body)
     const title = path.basename(name, path.extname(name)).slice(0, 200)
     const pdf =
-      engine.name === 'libreoffice' ? await libreofficeToPdf(req.body, ext) : await renderPdf(await officeDocument(req.body, ext), { title })
-    console.log(`[convert] .${ext} ${(req.body.length / 1024).toFixed(0)} KB → PDF via ${engine.name} in ${Date.now() - started} ms`)
-    res.type('application/pdf').send(pdf)
+      engine.name === 'libreoffice'
+        ? await libreofficeToPdf(body, ext)
+        : await renderPdf(await officeDocument(body, ext), { title })
+    console.log(
+      `[convert] .${ext} ${(body.length / 1024).toFixed(0)} KB → PDF via ${engine.name} in ${Date.now() - started} ms`,
+    )
+    await sendPdf(res, pdf)
   } catch (e) {
     if (!(e instanceof HttpError)) console.error('[convert]', e)
     res.status(e.status || 500).json({ error: e instanceof HttpError ? e.message : 'Conversion failed on the server.' })
@@ -130,31 +211,56 @@ app.post('/api/convert/url', express.json({ limit: '16kb' }), async (req, res) =
       },
     )
     console.log(`[url] ${new URL(target).hostname} → PDF in ${Date.now() - started} ms`)
-    res.type('application/pdf').send(pdf)
+    await sendPdf(res, pdf)
   } catch (e) {
     if (!(e instanceof HttpError)) console.error('[url]', e)
     res.status(e.status || 500).json({ error: e instanceof HttpError ? e.message : 'Couldn’t convert that page.' })
   }
 })
 
+// The installed app's share target. The service worker normally answers this; if it isn't
+// running yet, just open the app instead of showing an error.
+app.post('/share-target', (req, res) => res.redirect(303, '/'))
+
 app.use((err, req, res, next) => {
-  if (err?.type === 'entity.too.large') return res.status(413).json({ error: `Files up to ${MAX_UPLOAD_MB} MB can be converted.` })
+  if (err?.type === 'entity.too.large')
+    return res.status(413).json({ error: `Files up to ${MAX_UPLOAD_MB} MB can be converted.` })
   if (err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'The request wasn’t valid JSON.' })
   next(err)
 })
 
-const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 if (existsSync(dist)) {
-  app.use(express.static(dist))
-  app.get('*', (req, res, next) => (req.path.startsWith('/api/') ? next() : res.sendFile(path.join(dist, 'index.html'))))
+  // Pre-rendered pages are dist/<page>.html, served at /<page>. Anything else gets 404.html with a
+  // 404 status (it still loads the app, which shows its own "not found" page).
+  app.use(
+    express.static(dist, {
+      extensions: ['html'],
+      setHeaders(res, file) {
+        const name = path.basename(file)
+        // Hashed build files never change; the service worker and manifest must be re-checked so
+        // updates reach installed apps.
+        if (file.includes(`${path.sep}assets${path.sep}`))
+          res.set('Cache-Control', 'public, max-age=31536000, immutable')
+        else if (name === 'sw.js' || name === 'manifest.webmanifest' || name.endsWith('.html'))
+          res.set('Cache-Control', 'no-cache')
+      },
+    }),
+  )
+  const notFound = existsSync(path.join(dist, '404.html')) ? path.join(dist, '404.html') : path.join(dist, 'index.html')
+  app.get('*', (req, res, next) =>
+    req.path.startsWith('/api/') ? next() : res.status(404).set('Cache-Control', 'no-cache').sendFile(notFound),
+  )
 }
 
 app.listen(PORT, HOST, () => {
   const engine = officeEngine()
   console.log(`PDFwise server listening on http://${HOST}:${PORT}`)
-  console.log(`Office converter: ${engine.name ?? 'none'}${engine.name === 'builtin' ? ' (LibreOffice not found — using Chrome/Edge)' : ''}`)
+  console.log(
+    `Office converter: ${engine.name ?? 'none'}${engine.name === 'builtin' ? ' (LibreOffice not found — using Chrome/Edge)' : ''}`,
+  )
   console.log(`Browser for URL → PDF: ${findBrowser() ?? 'not found'}`)
   if (BASIC_AUTH) console.log('Password protection: on')
-  if (HOST !== '127.0.0.1' && HOST !== 'localhost' && !BASIC_AUTH) console.warn('Warning: listening beyond localhost without BASIC_AUTH.')
+  if (HOST !== '127.0.0.1' && HOST !== 'localhost' && !BASIC_AUTH)
+    console.warn('Warning: listening beyond localhost without BASIC_AUTH.')
   if (existsSync(dist)) console.log(`Serving the app from ${dist}`)
 })

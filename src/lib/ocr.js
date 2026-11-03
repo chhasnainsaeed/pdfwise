@@ -51,7 +51,8 @@ async function pageHasText(pdf, n) {
   return tc.items.reduce((sum, it) => sum + (it.str?.trim().length ?? 0), 0) > 20
 }
 
-const utf16Hex = (ch) => Array.from({ length: ch.length }, (_, i) => ch.charCodeAt(i).toString(16).padStart(4, '0')).join('')
+const utf16Hex = (ch) =>
+  Array.from({ length: ch.length }, (_, i) => ch.charCodeAt(i).toString(16).padStart(4, '0')).join('')
 
 /**
  * An invisible-text font: no glyph program is needed because the text is never painted,
@@ -84,7 +85,17 @@ function glyphlessFont(doc, chars) {
   ].join('\n')
   const toUnicode = ctx.register(ctx.flateStream(cmap))
   const descriptor = ctx.register(
-    ctx.obj({ Type: 'FontDescriptor', FontName: 'GlyphLessFont', Flags: 5, FontBBox: [0, 0, 500, 1000], ItalicAngle: 0, Ascent: 1000, Descent: 0, CapHeight: 1000, StemV: 80 }),
+    ctx.obj({
+      Type: 'FontDescriptor',
+      FontName: 'GlyphLessFont',
+      Flags: 5,
+      FontBBox: [0, 0, 500, 1000],
+      ItalicAngle: 0,
+      Ascent: 1000,
+      Descent: 0,
+      CapHeight: 1000,
+      StemV: 80,
+    }),
   )
   const cidFont = ctx.register(
     ctx.obj({
@@ -97,7 +108,16 @@ function glyphlessFont(doc, chars) {
       CIDToGIDMap: 'Identity',
     }),
   )
-  const ref = ctx.register(ctx.obj({ Type: 'Font', Subtype: 'Type0', BaseFont: 'GlyphLessFont', Encoding: 'Identity-H', DescendantFonts: [cidFont], ToUnicode: toUnicode }))
+  const ref = ctx.register(
+    ctx.obj({
+      Type: 'Font',
+      Subtype: 'Type0',
+      BaseFont: 'GlyphLessFont',
+      Encoding: 'Identity-H',
+      DescendantFonts: [cidFont],
+      ToUnicode: toUnicode,
+    }),
+  )
   return {
     ref,
     encode: (text) => PDFHexString.of([...text].map((ch) => codes.get(ch).toString(16).padStart(4, '0')).join('')),
@@ -113,7 +133,12 @@ export async function ocrPdf(file, { lang, skipText, output }, progress) {
   const count = pdf.numPages
   const scale = DPI / 72
   const pages = []
-  const worker = await createWorker(lang, 1)
+  // Engine code comes from this site (see vite.config.js); only the language data is downloaded.
+  const worker = await createWorker(lang, 1, {
+    workerPath: new URL(`${import.meta.env.BASE_URL}ocr/worker.min.js`, location.href).href,
+    corePath: new URL(`${import.meta.env.BASE_URL}ocr/`, location.href).href,
+    workerBlobURL: false,
+  })
   try {
     for (let n = 1; n <= count; n++) {
       if (skipText && (await pageHasText(pdf, n))) {
@@ -136,7 +161,8 @@ export async function ocrPdf(file, { lang, skipText, output }, progress) {
   }
 
   const recognized = pages.filter((p) => !p.skipped)
-  if (!recognized.length) throw new UserError('Every page already has selectable text, so there was nothing to recognize.')
+  if (!recognized.length)
+    throw new UserError('Every page already has selectable text, so there was nothing to recognize.')
   const words = recognized.reduce((n, p) => n + p.words.length, 0)
 
   if (output === 'txt') {
@@ -170,7 +196,11 @@ export async function ocrPdf(file, { lang, skipText, output }, progress) {
       const size = Math.max(1, h)
       const stretch = width / ([...text].length * GLYPH_WIDTH * size)
       const p = f.toUser(x0 * kx, f.height - y1 * ky + h * 0.2)
-      ops.push(setFontAndSize(key, size), setTextMatrix(stretch * cos, stretch * sin, -sin, cos, p.x, p.y), showText(font.encode(`${text} `)))
+      ops.push(
+        setFontAndSize(key, size),
+        setTextMatrix(stretch * cos, stretch * sin, -sin, cos, p.x, p.y),
+        showText(font.encode(`${text} `)),
+      )
     }
     ops.push(endText(), popGraphicsState())
     page.pushOperators(...ops)

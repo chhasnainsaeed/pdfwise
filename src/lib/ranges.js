@@ -1,3 +1,5 @@
+import { pluralize } from './files.js'
+
 /**
  * Parses a page list such as "1-3, 5, 8-" into sorted, unique 0-based indices.
  * Returns { pages } or { error }.
@@ -19,7 +21,7 @@ export function parsePageList(text, count) {
     }
     if (a > b) [a, b] = [b, a]
     if (a < 1) return { error: 'Page numbers start at 1.' }
-    if (b > count) return { error: `This document only has ${count} page${count === 1 ? '' : 's'}.` }
+    if (b > count) return { error: `This document only has ${pluralize(count, 'page')}.` }
     for (let i = a; i <= b; i++) set.add(i - 1)
   }
   return { pages: [...set].sort((x, y) => x - y) }

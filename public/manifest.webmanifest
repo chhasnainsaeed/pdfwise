@@ -1,0 +1,68 @@
+{
+  "id": "./",
+  "name": "PDFwise — PDF tools",
+  "short_name": "PDFwise",
+  "description": "Merge, split, compress, convert, edit, sign and protect PDFs. Works offline; files stay on your device.",
+  "start_url": "./?source=app",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "background_color": "#f6f5ff",
+  "theme_color": "#4b3bf5",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Compress PDF", "url": "compress-pdf", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Merge PDF", "url": "merge-pdf", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    {
+      "name": "PDF Workflows",
+      "url": "pdf-workflows",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    { "name": "Sign PDF", "url": "sign-pdf", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "share_target": {
+    "action": "share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": [
+            "application/pdf",
+            ".pdf",
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+          ]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "./",
+      "accept": {
+        "application/pdf": [".pdf"],
+        "image/jpeg": [".jpg", ".jpeg"],
+        "image/png": [".png"],
+        "image/webp": [".webp"]
+      },
+      "launch_type": "single-client"
+    }
+  ],
+  "launch_handler": { "client_mode": ["navigate-existing", "auto"] }
+}

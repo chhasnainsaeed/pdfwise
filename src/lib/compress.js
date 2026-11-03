@@ -1,14 +1,5 @@
-import {
-  PDFArray,
-  PDFBool,
-  PDFDocument,
-  PDFName,
-  PDFNumber,
-  PDFRawStream,
-  PDFRef,
-  decodePDFRawStream,
-} from 'pdf-lib'
-import { canvasToBlob } from './files.js'
+import { PDFArray, PDFBool, PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFRef, decodePDFRawStream } from 'pdf-lib'
+import { canvasToBlob, mapLimit, parallelism } from './files.js'
 
 const N = (n) => PDFName.of(n)
 
@@ -24,7 +15,7 @@ export const COMPRESSION_LEVELS = {
  * result would not be smaller.
  */
 export async function compressPdf(file, level, progress) {
-  const settings = COMPRESSION_LEVELS[level]
+  const settings = typeof level === 'string' ? COMPRESSION_LEVELS[level] : level
   const original = new Uint8Array(await file.arrayBuffer())
   const pdf = await PDFDocument.load(original, { updateMetadata: false })
   const ctx = pdf.context
@@ -40,9 +31,11 @@ export async function compressPdf(file, level, progress) {
       obj instanceof PDFRawStream && obj.dict.lookup(N('Subtype')) === N('Image') && !masks.has(ref.toString()),
   )
 
+  // Several images at once: JPEG encoding runs on the browser's background threads, so this is
+  // roughly N× faster on N cores, with identical output.
   let replaced = 0
-  for (let i = 0; i < images.length; i++) {
-    const [ref, stream] = images[i]
+  let done = 0
+  await mapLimit(images, parallelism(), async ([ref, stream]) => {
     try {
       const next = await recompressImage(stream, settings)
       if (next) {
@@ -52,12 +45,67 @@ export async function compressPdf(file, level, progress) {
     } catch (e) {
       console.warn('Skipping image', ref.toString(), e)
     }
-    progress?.(i + 1, images.length)
-  }
+    progress?.(++done, images.length)
+  })
 
   const bytes = await pdf.save({ useObjectStreams: true })
   const smaller = bytes.length < original.length
-  return { bytes: smaller ? bytes : original, before: original.length, after: smaller ? bytes.length : original.length, replaced }
+  return {
+    bytes: smaller ? bytes : original,
+    before: original.length,
+    after: smaller ? bytes.length : original.length,
+    replaced,
+  }
+}
+
+// From gentlest to harshest; compressToTarget searches this ladder for the gentlest step that fits.
+const TARGET_LADDER = [
+  { maxSide: 2600, quality: 0.82 },
+  { maxSide: 2000, quality: 0.72 },
+  { maxSide: 1700, quality: 0.65 },
+  { maxSide: 1400, quality: 0.56 },
+  { maxSide: 1100, quality: 0.46 },
+  { maxSide: 900, quality: 0.38 },
+  { maxSide: 750, quality: 0.3 },
+  { maxSide: 600, quality: 0.24 },
+  { maxSide: 480, quality: 0.18 },
+].map((s) => ({ ...s, minBytes: 4 * 1024 }))
+
+/**
+ * Compresses a PDF to fit under `target` bytes, keeping as much image quality as it can.
+ * Binary-searches the ladder above (about four passes). When even the harshest step is too
+ * big, returns that smallest result with `reached: false`.
+ */
+export async function compressToTarget(file, target, progress) {
+  if (file.size <= target) {
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    return { bytes, before: file.size, after: file.size, replaced: 0, reached: true, untouched: true }
+  }
+  const passes = Math.ceil(Math.log2(TARGET_LADDER.length)) + 1
+  let pass = 0
+  const attempt = async (i) => {
+    const r = await compressPdf(file, TARGET_LADDER[i], (d, t) => progress?.(pass + d / Math.max(t, 1), passes))
+    pass++
+    return r
+  }
+
+  // Try the harshest step first: if it can't fit, nothing gentler will.
+  let best = await attempt(TARGET_LADDER.length - 1)
+  if (best.after > target) return { ...best, reached: false }
+  let lo = 0
+  let hi = TARGET_LADDER.length - 2
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1
+    const r = await attempt(mid)
+    if (r.after <= target) {
+      best = r
+      hi = mid - 1
+    } else {
+      lo = mid + 1
+    }
+  }
+  progress?.(passes, passes)
+  return { ...best, reached: true }
 }
 
 function filterNames(filter) {
@@ -172,7 +220,7 @@ async function decodeSource(stream, width, height, components) {
   return createImageBitmap(new ImageData(rgba, width, height))
 }
 
-async function recompressImage(stream, { maxSide, quality }) {
+async function recompressImage(stream, { maxSide, quality, minBytes = 16 * 1024 }) {
   const d = stream.dict
   if (d.lookup(N('ImageMask')) === PDFBool.True) return null
   if (d.has(N('Decode')) || d.lookup(N('Mask')) instanceof PDFArray) return null
@@ -182,7 +230,7 @@ async function recompressImage(stream, { maxSide, quality }) {
   const width = widthObj.asNumber()
   const height = heightObj.asNumber()
   const components = colorComponents(d.lookup(N('ColorSpace')))
-  if (!components || stream.contents.byteLength < 16 * 1024) return null
+  if (!components || stream.contents.byteLength < minBytes) return null
 
   const bitmap = await decodeSource(stream, width, height, components)
   if (!bitmap) return null

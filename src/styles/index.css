@@ -1,0 +1,15 @@
+/* PDFwise styles. Import order is the cascade order — keep it.
+   Colors and sizes are tokens on :root in base.css. */
+
+@import './base.css';
+@import './header.css';
+@import './home.css';
+@import './tool-stages.css';
+@import './workspace.css';
+@import './controls.css';
+@import './tool-screens.css';
+@import './responsive.css';
+@import './immersive.css';
+@import './workflows.css';
+@import './app.css';
+@import './landing.css';

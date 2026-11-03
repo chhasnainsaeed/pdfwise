@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import PageThumb from '../components/PageThumb.jsx'
 import ToolLayout from '../components/ToolLayout.jsx'
 import { Checkbox, Field, Summary } from '../components/controls.jsx'
-import { PDF_TYPE, baseName, range, uid } from '../lib/files.js'
+import { PDF_TYPE, baseName, pluralize, range, uid } from '../lib/files.js'
 import { useElementSize, useSession } from '../lib/hooks.js'
 import { usePdfInfo } from '../lib/pdfjs.js'
 import { applyRedactions, findText } from '../lib/redact.js'
@@ -23,7 +23,8 @@ function Box({ box, scale, dims, onChange, onRemove }) {
     if (!d) return
     const dx = (e.clientX - d.x) / scale
     const dy = (e.clientY - d.y) / scale
-    if (d.kind === 'move') onChange({ x: clamp(d.box.x + dx, 0, dims.width - d.box.w), y: clamp(d.box.y + dy, 0, dims.height - d.box.h) })
+    if (d.kind === 'move')
+      onChange({ x: clamp(d.box.x + dx, 0, dims.width - d.box.w), y: clamp(d.box.y + dy, 0, dims.height - d.box.h) })
     else onChange({ w: clamp(d.box.w + dx, 4, dims.width - d.box.x), h: clamp(d.box.h + dy, 4, dims.height - d.box.y) })
   }
   const up = () => {
@@ -38,7 +39,13 @@ function Box({ box, scale, dims, onChange, onRemove }) {
       onPointerUp={up}
       onPointerCancel={up}
     >
-      <button type="button" className="placement-remove" aria-label="Remove redaction" onPointerDown={(e) => e.stopPropagation()} onClick={onRemove}>
+      <button
+        type="button"
+        className="placement-remove"
+        aria-label="Remove redaction"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={onRemove}
+      >
         <X size={13} strokeWidth={3} />
       </button>
       <span className="placement-resize" onPointerDown={(e) => down(e, 'resize')} />
@@ -54,7 +61,12 @@ function RedactLayer({ page, dims, boxes, onAdd, onChange, onRemove }) {
     const r = e.currentTarget.getBoundingClientRect()
     return [clamp((e.clientX - r.left) / scale, 0, dims.width), clamp((e.clientY - r.top) / scale, 0, dims.height)]
   }
-  const rect = (d) => ({ x: Math.min(d.x0, d.x1), y: Math.min(d.y0, d.y1), w: Math.abs(d.x1 - d.x0), h: Math.abs(d.y1 - d.y0) })
+  const rect = (d) => ({
+    x: Math.min(d.x0, d.x1),
+    y: Math.min(d.y0, d.y1),
+    w: Math.abs(d.x1 - d.x0),
+    h: Math.abs(d.y1 - d.y0),
+  })
   return (
     <div
       className="edit-layer mode-rect"
@@ -80,9 +92,26 @@ function RedactLayer({ page, dims, boxes, onAdd, onChange, onRemove }) {
       }}
     >
       {boxes.map((b) => (
-        <Box key={b.id} box={b} scale={scale} dims={dims} onChange={(patch) => onChange(b.id, patch)} onRemove={() => onRemove(b.id)} />
+        <Box
+          key={b.id}
+          box={b}
+          scale={scale}
+          dims={dims}
+          onChange={(patch) => onChange(b.id, patch)}
+          onRemove={() => onRemove(b.id)}
+        />
       ))}
-      {preview && <div className="redact-box is-preview" style={{ left: preview.x * scale, top: preview.y * scale, width: preview.w * scale, height: preview.h * scale }} />}
+      {preview && (
+        <div
+          className="redact-box is-preview"
+          style={{
+            left: preview.x * scale,
+            top: preview.y * scale,
+            width: preview.w * scale,
+            height: preview.h * scale,
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -121,8 +150,14 @@ export default function Redact() {
 
   const save = () =>
     run(async ({ progress }) => ({
-      files: [{ name: `${baseName(item.file.name)}-redacted.pdf`, type: PDF_TYPE, data: await applyRedactions(item.file, boxes, { keepMetadata }, progress) }],
-      note: `${boxes.length} area${boxes.length === 1 ? '' : 's'} redacted on ${pagesAffected} page${pagesAffected === 1 ? '' : 's'}. Those pages are now images; run OCR PDF if you need their remaining text to be searchable.`,
+      files: [
+        {
+          name: `${baseName(item.file.name)}-redacted.pdf`,
+          type: PDF_TYPE,
+          data: await applyRedactions(item.file, boxes, { keepMetadata }, progress),
+        },
+      ],
+      note: `${pluralize(boxes.length, 'area')} redacted on ${pluralize(pagesAffected, 'page')}. Those pages are now images; run OCR PDF if you need their remaining text to be searchable.`,
     }))
 
   return (
@@ -147,7 +182,9 @@ export default function Redact() {
                           dims={dims}
                           boxes={boxes.filter((b) => b.page === i + 1)}
                           onAdd={(b) => setBoxes((list) => [...list, b])}
-                          onChange={(id, patch) => setBoxes((list) => list.map((b) => (b.id === id ? { ...b, ...patch } : b)))}
+                          onChange={(id, patch) =>
+                            setBoxes((list) => list.map((b) => (b.id === id ? { ...b, ...patch } : b)))
+                          }
                           onRemove={(id) => setBoxes((list) => list.filter((b) => b.id !== id))}
                         />
                       )}
@@ -163,7 +200,14 @@ export default function Redact() {
       }
       sidebar={
         <>
-          <Field label="Find text to redact" hint={lastSearch === null ? 'Every match is marked; remove any you want to keep.' : `${lastSearch} match${lastSearch === 1 ? '' : 'es'} marked.`}>
+          <Field
+            label="Find text to redact"
+            hint={
+              lastSearch === null
+                ? 'Every match is marked; remove any you want to keep.'
+                : `${lastSearch} match${lastSearch === 1 ? '' : 'es'} marked.`
+            }
+          >
             <form
               className="search-row"
               onSubmit={(e) => {
@@ -171,7 +215,12 @@ export default function Redact() {
                 if (query.trim() && !searching) search()
               }}
             >
-              <input className="text-input" value={query} placeholder="Name, email, account number…" onChange={(e) => setQuery(e.target.value)} />
+              <input
+                className="text-input"
+                value={query}
+                placeholder="Name, email, account number…"
+                onChange={(e) => setQuery(e.target.value)}
+              />
               <button type="submit" className="btn btn-outline" disabled={!query.trim() || searching}>
                 <Search size={18} />
               </button>
@@ -200,8 +249,8 @@ export default function Redact() {
             ]}
           />
           <p className="side-text small">
-            Redaction is permanent. Marked pages are flattened into images with the areas blacked out, and the document is
-            rebuilt so the hidden text, links and other content from those pages are gone — not just covered.
+            Redaction is permanent. Marked pages are flattened into images with the areas blacked out, and the document
+            is rebuilt so the hidden text, links and other content from those pages are gone — not just covered.
           </p>
         </>
       }

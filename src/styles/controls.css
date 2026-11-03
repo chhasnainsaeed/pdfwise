@@ -1,0 +1,355 @@
+/* Form controls: fields, segmented buttons, radio cards, checkboxes. */
+
+/* ---------- Form controls ---------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.field-hint {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.text-input,
+.num-input {
+  width: 100%;
+  height: 42px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: #fff;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+
+.text-input {
+  padding: 0 12px;
+}
+
+select.text-input {
+  padding-right: 8px;
+}
+
+.text-input:focus,
+.num-input:focus-within {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+.num-input {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.num-input input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  padding: 0 0 0 12px;
+  background: transparent;
+}
+
+.num-input input:focus {
+  outline: none;
+}
+
+.num-suffix {
+  padding: 0 10px 0 4px;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.color-input {
+  width: 100%;
+  height: 42px;
+  padding: 4px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.range-input {
+  width: 100%;
+  accent-color: var(--brand);
+}
+
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f0eff6;
+}
+
+.seg button {
+  flex: 1 1 auto;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.seg button:hover {
+  color: var(--ink);
+}
+
+.seg button.is-active {
+  background: #fff;
+  color: var(--brand);
+  box-shadow: var(--shadow-sm);
+}
+
+.radio-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radio-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+}
+
+.radio-card:hover {
+  border-color: var(--line-2);
+}
+
+.radio-card.is-active {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.radio-card strong {
+  display: block;
+  font-size: 14px;
+}
+
+.radio-card small {
+  display: block;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.radio-dot {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border: 2px solid var(--line-2);
+  border-radius: 50%;
+  color: #fff;
+}
+
+.radio-card.is-active .radio-dot {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checkbox-box {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--line-2);
+  border-radius: 6px;
+  color: #fff;
+}
+
+.checkbox input:checked + .checkbox-box {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+
+.checkbox input:focus-visible + .checkbox-box {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 5px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 99px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.chip:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.summary {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.summary dt {
+  color: var(--ink-2);
+}
+
+.summary dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.range-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.range-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  grid-template-areas:
+    'name name x'
+    'from to x';
+  align-items: end;
+  gap: 6px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--g);
+  border-radius: 10px;
+}
+
+.range-name {
+  grid-area: name;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.range-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.range-row .num-input {
+  height: 36px;
+}
+
+.range-row .mini-btn {
+  grid-area: x;
+  align-self: center;
+}
+
+.pos-picker {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr 1fr;
+  align-content: space-between;
+  width: 132px;
+  height: 168px;
+  padding: 8px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(#fff 0 10px, #f0eff6 10px 12px) 22px 40px / calc(100% - 44px) calc(100% - 80px) no-repeat,
+    #fff;
+}
+
+.pos-spot {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+}
+
+.pos-picker .pos-bottom-left,
+.pos-picker .pos-bottom-center,
+.pos-picker .pos-bottom-right {
+  align-self: end;
+}
+
+.pos-spot span {
+  width: 18px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--line-2);
+}
+
+.pos-spot:hover span {
+  background: var(--ink-3);
+}
+
+.pos-spot.is-active span {
+  background: var(--brand);
+}

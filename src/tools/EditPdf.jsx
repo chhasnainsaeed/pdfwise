@@ -1,4 +1,16 @@
-import { Bold, Eraser, Highlighter, ImagePlus, MousePointer2, Pencil, Square, Trash2, TriangleAlert, Type, X } from 'lucide-react'
+import {
+  Bold,
+  Eraser,
+  Highlighter,
+  ImagePlus,
+  MousePointer2,
+  Pencil,
+  Square,
+  Trash2,
+  TriangleAlert,
+  Type,
+  X,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import PageThumb from '../components/PageThumb.jsx'
 import ToolLayout from '../components/ToolLayout.jsx'
@@ -153,7 +165,8 @@ function EditItem({ el, scale, dims, selected, editing, onSelect, onChange, onEd
           className="edit-fill"
           style={{
             background: el.fill || 'transparent',
-            border: el.stroke && el.strokeWidth > 0 ? `${Math.max(1, el.strokeWidth * scale)}px solid ${el.stroke}` : 'none',
+            border:
+              el.stroke && el.strokeWidth > 0 ? `${Math.max(1, el.strokeWidth * scale)}px solid ${el.stroke}` : 'none',
             opacity: el.opacity ?? 1,
           }}
         />
@@ -250,7 +263,8 @@ function EditLayer({ page, dims, mode, style, pendingImage, elements, selected, 
 
   const shapeFor = (kind, box) => {
     if (kind === 'highlight') return { type: 'highlight', ...box, color: style.highlight.color }
-    if (kind === 'whiteout') return { type: 'rect', whiteout: true, ...box, fill: '#ffffff', stroke: '', strokeWidth: 0, opacity: 1 }
+    if (kind === 'whiteout')
+      return { type: 'rect', whiteout: true, ...box, fill: '#ffffff', stroke: '', strokeWidth: 0, opacity: 1 }
     return { type: 'rect', ...box, ...style.rect }
   }
 
@@ -263,7 +277,10 @@ function EditLayer({ page, dims, mode, style, pendingImage, elements, selected, 
     }
     if (mode === 'text') {
       const size = style.text.size
-      actions.add({ id: uid(), type: 'text', ...base, ...style.text, x, y: Math.max(0, y - size * 0.6), text: '' }, { edit: true })
+      actions.add(
+        { id: uid(), type: 'text', ...base, ...style.text, x, y: Math.max(0, y - size * 0.6), text: '' },
+        { edit: true },
+      )
       return
     }
     if (mode === 'image') {
@@ -320,7 +337,8 @@ function EditLayer({ page, dims, mode, style, pendingImage, elements, selected, 
     setPreview(null)
     if (!d) return
     if (d.kind === 'draw') {
-      if (d.points.length > 1) actions.add({ id: uid(), type: 'draw', ...base, ...style.draw, points: d.points }, { keepMode: true })
+      if (d.points.length > 1)
+        actions.add({ id: uid(), type: 'draw', ...base, ...style.draw, points: d.points }, { keepMode: true })
       return
     }
     let box = boxFrom(d)
@@ -358,12 +376,25 @@ function EditLayer({ page, dims, mode, style, pendingImage, elements, selected, 
         />
       ))}
       {preview && preview.type !== 'draw' && (
-        <div className="edit-item is-preview" style={{ left: preview.x * scale, top: preview.y * scale, width: preview.w * scale, height: preview.h * scale }}>
+        <div
+          className="edit-item is-preview"
+          style={{
+            left: preview.x * scale,
+            top: preview.y * scale,
+            width: preview.w * scale,
+            height: preview.h * scale,
+          }}
+        >
           <div
             className={`edit-fill ${preview.type === 'highlight' ? 'is-highlight' : ''}`}
             style={{
               background: preview.type === 'highlight' ? preview.color : preview.fill || 'transparent',
-              border: preview.stroke && preview.strokeWidth ? `${Math.max(1, preview.strokeWidth * scale)}px solid ${preview.stroke}` : preview.whiteout ? '1px dashed #adb5bd' : 'none',
+              border:
+                preview.stroke && preview.strokeWidth
+                  ? `${Math.max(1, preview.strokeWidth * scale)}px solid ${preview.stroke}`
+                  : preview.whiteout
+                    ? '1px dashed #adb5bd'
+                    : 'none',
             }}
           />
         </div>
@@ -381,7 +412,14 @@ function EditLayer({ page, dims, mode, style, pendingImage, elements, selected, 
           />
         ))}
         {preview?.type === 'draw' && (
-          <path d={pathOf(preview.points)} stroke={preview.color} strokeWidth={preview.width} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d={pathOf(preview.points)}
+            stroke={preview.color}
+            strokeWidth={preview.width}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         )}
       </svg>
     </div>
@@ -558,17 +596,32 @@ export default function EditPdf() {
               )}
               <div className="field-grid">
                 <Field label="Font">
-                  <select className="text-input" value={values.font} onChange={(e) => setProp({ font: e.target.value })}>
+                  <select
+                    className="text-input"
+                    value={values.font}
+                    onChange={(e) => setProp({ font: e.target.value })}
+                  >
                     <option value="helvetica">Helvetica</option>
                     <option value="times">Times</option>
                     <option value="courier">Courier</option>
                   </select>
                 </Field>
                 <Field label="Size">
-                  <NumberInput value={values.size} min={4} max={144} suffix="pt" onChange={(v) => setProp({ size: clampNum(v, 4, 144, 16) })} />
+                  <NumberInput
+                    value={values.size}
+                    min={4}
+                    max={144}
+                    suffix="pt"
+                    onChange={(v) => setProp({ size: clampNum(v, 4, 144, 16) })}
+                  />
                 </Field>
                 <Field label="Color">
-                  <input type="color" className="color-input" value={values.color} onChange={(e) => setProp({ color: e.target.value })} />
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={values.color}
+                    onChange={(e) => setProp({ color: e.target.value })}
+                  />
                 </Field>
               </div>
               <button
@@ -586,10 +639,22 @@ export default function EditPdf() {
               <h3 className="side-title">Shape</h3>
               <div className="field-grid two">
                 <Field label="Border">
-                  <input type="color" className="color-input" value={values.stroke || '#000000'} onChange={(e) => setProp({ stroke: e.target.value })} />
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={values.stroke || '#000000'}
+                    onChange={(e) => setProp({ stroke: e.target.value })}
+                  />
                 </Field>
                 <Field label="Border width">
-                  <NumberInput value={values.strokeWidth} min={0} max={20} step={0.5} suffix="pt" onChange={(v) => setProp({ strokeWidth: clampNum(v, 0, 20, 0) })} />
+                  <NumberInput
+                    value={values.strokeWidth}
+                    min={0}
+                    max={20}
+                    step={0.5}
+                    suffix="pt"
+                    onChange={(v) => setProp({ strokeWidth: clampNum(v, 0, 20, 0) })}
+                  />
                 </Field>
               </div>
               <Checkbox checked={!!values.fill} onChange={(on) => setProp({ fill: on ? '#ffe066' : '' })}>
@@ -597,11 +662,24 @@ export default function EditPdf() {
               </Checkbox>
               {values.fill && (
                 <Field label="Fill color">
-                  <input type="color" className="color-input" value={values.fill} onChange={(e) => setProp({ fill: e.target.value })} />
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={values.fill}
+                    onChange={(e) => setProp({ fill: e.target.value })}
+                  />
                 </Field>
               )}
               <Field label={`Opacity — ${Math.round(values.opacity * 100)}%`}>
-                <input type="range" className="range-input" min={0.1} max={1} step={0.05} value={values.opacity} onChange={(e) => setProp({ opacity: Number(e.target.value) })} />
+                <input
+                  type="range"
+                  className="range-input"
+                  min={0.1}
+                  max={1}
+                  step={0.05}
+                  value={values.opacity}
+                  onChange={(e) => setProp({ opacity: Number(e.target.value) })}
+                />
               </Field>
             </>
           )}
@@ -629,10 +707,22 @@ export default function EditPdf() {
               <h3 className="side-title">Pen</h3>
               <div className="field-grid two">
                 <Field label="Color">
-                  <input type="color" className="color-input" value={values.color} onChange={(e) => setProp({ color: e.target.value })} />
+                  <input
+                    type="color"
+                    className="color-input"
+                    value={values.color}
+                    onChange={(e) => setProp({ color: e.target.value })}
+                  />
                 </Field>
                 <Field label="Width">
-                  <NumberInput value={values.width} min={0.5} max={20} step={0.5} suffix="pt" onChange={(v) => setProp({ width: clampNum(v, 0.5, 20, 2.5) })} />
+                  <NumberInput
+                    value={values.width}
+                    min={0.5}
+                    max={20}
+                    step={0.5}
+                    suffix="pt"
+                    onChange={(v) => setProp({ width: clampNum(v, 0.5, 20, 2.5) })}
+                  />
                 </Field>
               </div>
             </>
@@ -640,22 +730,32 @@ export default function EditPdf() {
           {group === 'image' && (
             <>
               <h3 className="side-title">Image</h3>
-              {pendingImage && !sel && <img className="edit-image-preview" src={pendingImage.src} alt="Image to place" />}
+              {pendingImage && !sel && (
+                <img className="edit-image-preview" src={pendingImage.src} alt="Image to place" />
+              )}
               <Field label={`Opacity — ${Math.round(values.opacity * 100)}%`}>
-                <input type="range" className="range-input" min={0.1} max={1} step={0.05} value={values.opacity} onChange={(e) => setProp({ opacity: Number(e.target.value) })} />
+                <input
+                  type="range"
+                  className="range-input"
+                  min={0.1}
+                  max={1}
+                  step={0.05}
+                  value={values.opacity}
+                  onChange={(e) => setProp({ opacity: Number(e.target.value) })}
+                />
               </Field>
             </>
           )}
           {(mode === 'whiteout' || sel?.whiteout) && (
             <p className="side-text small">
-              Whiteout hides content visually. The original text is still inside the file, so don’t rely on it to
-              redact sensitive information.
+              Whiteout hides content visually. The original text is still inside the file, so don’t rely on it to redact
+              sensitive information.
             </p>
           )}
           {!group && mode === 'select' && !sel && (
             <p className="side-text">
-              Pick a tool above the document: add text, images, shapes and highlights, cover things up with whiteout,
-              or draw freehand.
+              Pick a tool above the document: add text, images, shapes and highlights, cover things up with whiteout, or
+              draw freehand.
             </p>
           )}
           {sel && (
