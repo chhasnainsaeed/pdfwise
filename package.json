@@ -30,7 +30,7 @@
     "exceljs": "^4.4.0",
     "express": "^4.22.2",
     "jszip": "^3.10.1",
-    "lucide-react": "^0.460.0",
+    "lucide-react": "^1.66.0",
     "mammoth": "^1.13.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.10.38",
