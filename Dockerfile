@@ -13,7 +13,7 @@
 
 # puppeteer-core needs Node >= 22.12; the 22 tag is always a recent 22.x. Pulled from the Docker
 # official images mirror on Amazon ECR Public, which has no Docker Hub pull limits.
-FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS app
+FROM public.ecr.aws/docker/library/node:26-bookworm-slim AS app
 
 ARG INCLUDE_LIBREOFFICE=false
 
