@@ -36,7 +36,7 @@
     "pdfjs-dist": "^4.10.38",
     "puppeteer-core": "^25.14.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",
     "tesseract.js": "^5.1.1",
     "three": "^0.169.0",
